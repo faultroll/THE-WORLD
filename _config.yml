@@ -1,1 +1,15 @@
-theme: jekyll-theme-leap-day
+title: 'THE-WORLD'
+description: "the World of Imagination"
+baseurl: "/"
+url: "https://faultroll.github.io/THE-WORLD"
+
+header_pages:
+  - index.md
+  - about.md
+  - contact.md
+
+style: dark
+
+# Build settings
+markdown: 
+remote_theme: b2a3e8/jekyll-theme-console
