@@ -308,3 +308,99 @@ UniHwIF_sdctrl --> init_hdisk
 
 
 
+
+* planB
+五年计划，十年计划，几辈子的计划（人是核心，怎么让后辈的人继续而不是中断）
+一辈子能做的事太少，要从几辈子来考虑
+计划：
+30前：活着，知识库，独立空间，钱钱钱
+30－40：领养，教育，国外
+目标：
+松散联合体（家族，收养，人口，教父？）－企业国（辐射学院，产业科学）－赛博鲁斯
+梦想：
+造物主（机械生命），宇宙探索（宇宙文明），生物科技（殖装母巢）
+
+硬件行业标准？软件开源维护？工作环境统一搭建docker
+自动测试程序（想想就好）
+快速硬件检测方法（demo机器，要检测的硬件替换看正不正常）
+
+app操作函数化，表格化
+工程管理？软件工程？目录结构？
+外来库：
+release版带版本号（git/svn号），除非是要跟别的共用，最后都编译到给外面的文件中（.so库静态编译）
+debug版模块化给，方便更换（.so动态编译）
+？？每次make，rm生成的文件，但不rm中间文件？
+.h文件需要单独编译透过（解耦）
+extern变量（注意） 
+OBJS:obj/%.o:src/%.c
+make svn：
+1. svn版本号（LANG=C; svn info | grep "Revision:" -i | sed -e "s/Revision: //g"），svn服务器端路径（LANG=C; svn info | grep "URL:" -i | sed -e "s/URL: //g"）
+``` sh
+# 预编译头
+dir=./inc/his
+fileset=`find "./inc/his" -name "*.h" -printf "%f\n" | grep -v "hiPCH" | sort`
+exclude="hi_isp_bin.h list.h"
+if [ -e ${dir}/hiPCH.h ]
+then
+    rm ${dir}/hiPCH.h
+fi
+
+echo "#ifndef __HI_HIPCH_H__" >> ${dir}/hiPCH.h
+echo "#define __HI_HIPCH_H__" >> ${dir}/hiPCH.h
+# 版本信息，URL仍需改进（不是最上层的URL，现在只能通过cd命令，修改执行svn info的位置来修复）
+LANG=C;
+revision=`svn info | grep "Revision:" -i | sed -e "s/Revision: //g"`
+url=`svn info | grep "URL:" -i | sed -e "s/URL: //g"` # | sed -e "s/https:\/\///g"
+version="(\"[${url}][${revision}]\")"
+echo "#define __VER_SVN__ ${version}" >> ${dir}/hiPCH.h
+echo "" >> ${dir}/hiPCH.h
+for file in ${fileset}
+do
+    inc="#include \"${file}\""
+    # if echo "${exclude[@]}" | grep -w "${file}" &>/dev/null
+    if [[ ${exclude} =~ ${file} ]]
+    then
+        inc="// ${inc}"
+    fi
+    echo ${inc} >> ${dir}/hiPCH.h
+done
+echo "" >> ${dir}/hiPCH.h
+echo "#endif" >> ${dir}/hiPCH.h
+```
+https://stackoverflow.com/questions/9128344/how-to-get-svn-remote-repository-url
+https://stackoverflow.com/questions/16248/getting-the-subversion-repository-number-into-code
+2. 其他无关紧要（日期，客户端路径等），以保证代码和编译出来的唯一对应（参考内核和模块）
+reproducible builds：https://www.reddit.com/r/compsci/comments/3kmlwg/how_exactly_do_reproducible_builds_work/
+https://www.gnu.org/software/guix/blog/2018/reproducible-builds-summit-4th-edition/
+-Werror=date-time：https://stackoverflow.com/questions/34798767/compile-driver-on-linux-with-make
+https://blog.csdn.net/mike8825/article/details/52057637
+ar -D（reproducible build）：https://linux.die.net/man/1/ar
+svn日期等信息单独存一个文件（txt/xml/ini这种），然后软件去读取，这样既可以保留编译日期版本等信息，又能做到reproducible
+3. LANG会影响map和asm，-flto每次编译的函数编号不一致
+```
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US.UTF-8
+```
+消除LANG影响，不要用-flto
+
+
+Feature Freeze, regression bug
+git flow：https://www.oschina.net/translate/a-successful-git-branching-model
+svn模拟git flow：https://blog.csdn.net/liumiaocn/article/details/81942182
+
+```
+方言/语法糖 跟 portable/耦合性 之间的矛盾
+eg. 类似
+#define MK_STRUCT(_type, ...) (_type){__VA_ARGS__}
+debug_printf(lvl, ...)
+如果大量运用在代码中，那么将这个当作一个模块，这部分代码就是跟模块强耦
+合；想单独剥离出代码进行移植，就得先移植这个模块
+如何平衡耦合性和移植性之间的矛盾？
+当这些东西运用的多的时候（比如在github上有几千的star），这个就变成一个
+基础库；更上一层，当这个东西被大机构（比如苹果/firefox）运用的多了，就变成了方
+言（obj-c前身），当这些方言可以通过bootstrap进行自举，这就变成了新的“语言”
+（object-c/rust）
+```
+
+
