@@ -1,0 +1,115 @@
+
+onedrive（5g+git管理）：存放工作环境配置
+* 操作系统：win10ltsc/winserver+docker（x-server仍在配置）
+* 编辑器配置：emacs+vscode（仍在寻找用emacs的替代方式）
+* 常用软件配置：putty？secureCRT？
+* 几个org：cmd/job/misc/daydream/tutorial
+* 游戏存档，库等
+
+对比工具：https://www.slant.co/topics/1324/~best-diff-tools-for-git
+https://github.com/GNOME/meld
+
+git, svn, onedrive：
+https://xinger.ink/?p=810
+https://blog.csdn.net/fusuogang/article/details/52421347
+同时使用svn和git：https://zxtechart.com/2017/07/16/use-two-remote-repos-of-svn-and-git-at-the-same-time-for-the-same-project/
+.git.svn在一个目录下，优先checkout svn（因为52上是svn，git只做自己的版本管理）
+版本更新后需要upgrade：https://blog.csdn.net/hekp2009/article/details/37917679
+比较工具换成bcompare：https://blog.csdn.net/heartcircle/article/details/79895966
+
+
+git-windows登陆github（生成ssh-keygen的时候passphrase填空就行）
+https://segmentfault.com/a/1190000012197081
+Permission denied (publickey)：https://www.cnblogs.com/lxwphp/p/7884700.html
+git clone位置：https://blog.csdn.net/pp814274513/article/details/86615355
+https://www.cnblogs.com/come202011/p/12148656.html
+git clone子目录：https://blog.csdn.net/zzh920625/article/details/77073816
+https://zhgcao.github.io/2016/05/11/git-sparse-checkout/
+
+git命令：
+https://www.cnblogs.com/fangshenghui/p/5693593.html
+lf&crlf转换问题（autocrlf input&safecrlf warn）：https://www.cnblogs.com/sdgf/p/6237847.html
+push无效：https://lightonphiri.org/blog/git-remote-error-refusing-to-update-checked-out-branch
+https://www.cnblogs.com/ray-mr-huang/p/9130087.html
+checkout等：https://www.cnblogs.com/qianqiannian/category/899203.html
+中央仓库：https://segmentfault.com/a/1190000009673544
+忽略文件（.gitignore）：https://www.jianshu.com/p/a09a9b40ad20
+https://www.cnblogs.com/kevingrace/p/5690241.html
+空目录（不推荐用.gitkeep）：https://stackoverflow.com/questions/7229885/what-are-the-differences-between-gitignore-and-gitkeep
+https://segmentfault.com/a/1190000006866280
+``` sh
+git config --global core.autocrlf input
+git config --global core.safecrlf warn
+git config --global receive.denyCurrentBranch warn
+```
+
+github.io博客：https://www.smashingmagazine.com/2014/08/build-blog-jekyll-github-pages/（fork完需要重新选下theme来刷新下，否则会出现404错误）
+https://www.cnblogs.com/bahcelor/p/6555011.html
+https://segmentfault.com/q/1010000005312583/a-1020000005312750
+https://blog.csdn.net/walkerhau/article/details/77394659
+https://blog.csdn.net/Maple_ROSI/article/details/79484691
+http://cheukyin.github.io/jekyll/emacs/2014-08/org2jekyll.html
+
+***
+
+SVN：subversion，版本控制
+samba：SMB/CIFS（信息服务模块），文件共享
+ssh：secure shell，加密登陆（远程）
+CPL：compile，编译平台
+SI：source insight，代码编辑
+
+``` mermaid
+graph LR
+id01("SVN")-->id02("CPL（2、编译）")
+id03("PC（1、SI码代码）")-->|"ssh，samba"|id02
+id02-->|"samba"|id03
+id03-->id01
+id01-->id03
+id02-->id01
+```
+
+![CPL](https://upload-images.jianshu.io/upload_images/293860-912850dd241ef37f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+版本库，可以认为是svn管理下的一个完整的库，这个库的版本号是统一管理的；
+父版本库，SVN服务器上存放多个版本库的文件夹，其下的各个版本库是完全独立的，版本号完全不相关；
+文件夹，一个版本库下面可以有各层文件夹，这些文件夹只是这个版本库的一个组成部分，任何一个文件的修改都会导致整个版本库的版本号加1.
+一个项目可以是单独存放在一个版本库内，这时这多个项目的父文件夹就是父版本库了，但父版本库是不能检出的，无法checkout；
+一个项目也可以是存放在一个版本库的下的某个文件夹内，这时这多个项目的父文件夹就是这个版本库的根目录了，这时是可以checkout的。这时若checkout版本库根目录，会把所有的项目都检出来
+
+``` mermaid
+graph LR
+id01("父版本库（文件夹？）")===id02("版本库1（文件夹）")
+id01===id03("版本库2")
+id01===id04("版本库n")
+subgraph ""
+id02---id20("版本号0（空文件夹）")
+id02---id21("版本号1（文件夹）")
+id22("版本号2（文件夹）")
+id02---id23("版本号n（文件夹）")
+id21---id211("项目1（文件夹）")
+id21---id212("项目2")
+id21---id213("项目n")
+id211---id214("文件夹？&文件")
+id214-.-|"任何改动会导致版本号+1"|id02
+id214-->|"1、改动后svn commit"|id21
+id02-->|"2、创建新版本号"|id22
+id214-->|"3、svn update"|id22
+id22-->|"3、更新版本"|id214
+end
+```
+
+1、checkout跟check in对应，export跟import对应。
+2、checkout导出获得文件后，导出的文件仍处于SVN版本控制中，与版本库保持关联，你可以进行Svn Update或者Svn Commit操作。同时导出文件夹下有一个.svn的隐藏文件夹，存储着一些版本的元数据信息。
+3、export导出一个版本的数据，导出的文件脱离SVN版本控制，修改后无法进行Update和Commit操作。导出文件夹下没有.svn目录。
+1、当你要发布或编译的时候，最好采用export，它不会引入svn的附加文件。
+2、当你需要修改和提交的时候，用checkout，它会在你本地建立一个工作区。
+
+svn编译：
+https://www.cnblogs.com/-Rik/p/3732364.html
+Can't convert string from 'UTF-8' to native encoding：
+https://blog.csdn.net/qiuxuemei915/article/details/45720301
+https://blog.csdn.net/dazhi_100/article/details/17148987
+命令行下svn日志换行：https://blog.csdn.net/yockie/article/details/51135022
+
+svn merge：
+https://stackoverflow.com/questions/1557658/using-subversion-how-can-i-cut-from-one-file-and-paste-to-another-preserving-hi

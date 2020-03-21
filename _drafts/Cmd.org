@@ -1,0 +1,339 @@
+﻿
+
+* hisi
+#+BEGIN_SRC sh
+setenv serverip 10.22.38.17
+setenv ipaddr 10.22.38.161
+tftp 0x45000000 uImage;bootm 0x45000000
+#+END_SRC
+#+BEGIN_QUOTE
+bootcmd=cramfsload 0x42000000 uImage
+bootdelay=1
+bootfile="uImage"
+bootargs=mem=1024M console=ttyAMA0,115200 sdbg=j who=fangjiancai
+sec=tftp 0x42000000 Ky2017-1-uImage_sec;bootm 0x42000000;
+
+ethaddr=00:00:23:34:45:66
+netmask=255.255.255.0
+gatewayip=10.22.36.254
+ipaddr=10.22.36.203
+serverip=10.1.74.53
+
+stdin=serial
+stdout=serial
+stderr=serial
+baudrate=115200
+
+verify=n
+ver=U-Boot 2010.06-svn (Apr 19 2018 - 17:49:22)
+#+END_QUOTE
+
+
+startvo 0 36 13;
+startgx 0 0x45800000 512 0 0 512 512;
+//startgx 0 0x88000000 1600 0 0 800 600;
+//setenv jpeg_addr 0x86000000;
+//loadb 0x86000000
+//setenv jpeg_size 0x103b0
+//setenv vobuf 0x88000000;
+tftp 0x45000000 lena512color.jpg
+decjpg
+
+setenv bootargs mem=768M console=ttyAMA0,115200 sdbg=j who=liuguangyuan5
+saveenv
+#+BEGIN_QUOTE
+[    0.000000] Memory: 772240K/786432K available (4065K kernel code, 199K rwdata, 1116K rodata, 1408K init, 286K bss, 14192K reserved, 0K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xffe00000   (2048 kB)
+[    0.000000]     vmalloc : 0xb0800000 - 0xff000000   (1256 MB)
+[    0.000000]     lowmem  : 0x80000000 - 0xb0000000   ( 768 MB)
+[    0.000000]     pkmap   : 0x7fe00000 - 0x80000000   (   2 MB)
+[    0.000000]     modules : 0x7f000000 - 0x7fe00000   (  14 MB)
+[    0.000000]       .text : 0x80008000 - 0x8051793c   (5183 kB)
+[    0.000000]       .init : 0x80518000 - 0x80678000   (1408 kB)
+[    0.000000]       .data : 0x80678000 - 0x806a9e80   ( 200 kB)
+[    0.000000]        .bss : 0x806a9e80 - 0x806f183c   ( 287 kB)
+#+END_QUOTE
+
+cd /mnt/mpp/ko
+./load3531d -i -ad 6134 -osmem 768 mem_size 1152
+
+cat /proc/umap/hifb0
+#+BEGIN_QUOTE
+layer name                       :layer_0 
+Open count                       :0
+Show state                       :OFF
+Start position                   :(0, 0)
+xres, yres                       :(1280, 640)
+xres_virtual, yres_virtual       :(1280, 640)
+xoffset, yoffset                 :(0, 0)
+fix.line_length                  :5120
+Mem size:                        :786432 KB
+Layer Scale (hw):                :NO 
+ColorFormat:                     :ARGB8888
+Alpha Enable                     :ON
+AlphaChannel Enable              :OFF
+Alpha0, Alpha1                   :0, 255
+Alpha Global                     :255
+Colorkey Enable                  :OFF
+Colorkey value                   :0x0
+Deflicker Mode:                  :NONE
+Deflicker Level:                 :AUTO
+Display Buffer mode              :single
+Displaying addr (register)       :0xe2c98000
+display buffer[0] addr           :0xb0228000
+display buffer[1] addr           :0xb0548000
+displayrect                      :(1280, 640)
+screenrect                       :(1280, 640)
+device max resolution            :1920, 1080
+IsNeedFlip(2buf)                 :NO
+BufferIndexDisplaying(2buf)      :0
+refresh request num(2buf)        :0
+switch buf num(2buf)             :0
+union rect (2buf)                :(0,0,0,0)
+canavas updated addr             :0xe2c98000
+canavas updated (x, y, w, h)     :(0,0,1280,640) 
+canvas width                     :1280
+canvas height                    :640
+canvas pitch                     :5120
+canvas format                    :ARGB8888
+IsCompress                       :NO
+Is DDR Dettect                   :NO
+DDR Detect Zones                 :0
+PreMul Enable                    :OFF
+[root@medical hifb] # cat /proc/umap/hifb3
+layer name                       :layer_3 
+Open count                       :0
+Show state                       :OFF
+Start position                   :(269, 212)
+xres, yres                       :(16, 16)
+xres_virtual, yres_virtual       :(16, 16)
+xoffset, yoffset                 :(0, 0)
+fix.line_length                  :64
+Mem size:                        :32400 KB
+Layer Scale (hw):                :NO 
+ColorFormat:                     :ARGB8888
+Alpha Enable                     :ON
+AlphaChannel Enable              :OFF
+Alpha0, Alpha1                   :0, 255
+Alpha Global                     :255
+Colorkey Enable                  :OFF
+Colorkey value                   :0x0
+Deflicker Mode:                  :NONE
+Deflicker Level:                 :AUTO
+Display Buffer mode              :unkown
+Displaying addr (register)       :0xe0228000
+display buffer[0] addr           :0xe0228000
+display buffer[1] addr           :0xe0228400
+displayrect                      :(16, 16)
+screenrect                       :(16, 16)
+device max resolution            :1920, 1080
+IsNeedFlip(2buf)                 :NO
+BufferIndexDisplaying(2buf)      :0
+refresh request num(2buf)        :0
+switch buf num(2buf)             :0
+union rect (2buf)                :(0,0,0,0)
+canavas updated addr             :0xe0228000
+canavas updated (x, y, w, h)     :(0,0,16,16) 
+canvas width                     :16
+canvas height                    :16
+canvas pitch                     :64
+canvas format                    :ARGB8888
+IsCompress                       :NO
+Is DDR Dettect                   :NO
+DDR Detect Zones                 :0
+PreMul Enable                    :OFF
+#+END_QUOTE
+
+
+./TDEQucikTest 2>stderr &
+top -d 1
+kill 255
+
+echo "venc=4" > /proc/umap/logmpp
+
+* svn
+svn co "https://192.0.0.240/PJ01R2017121206/trunk/工程/11软件开发/程序包/Architecture_dsp/" ~/nfs/Architecture_dsp/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/3559A/" ~/nfs/3559A/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/OF_Camera_Net/" ~/nfs/release/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/trunk/MedicalDome_H1/" ~/nfs/MedicalDome_H1/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/Technic_Pre_research/Sii9024Driver/" ~/nfs/Sii9024Driver/ --username liuguangyuan5
+
+svn co "https://192.0.0.120/Medical/DSP/branches/xilinx/mpsoc/f1_mpsoc/" ~/nfs/f1_dsp/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/APP/trunk/F1_BASE/" ~/nfs/f1_app/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/xilinx/mpsoc/jx_wapper/" ~/nfs/jx_wapper/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/APP/share/" ~/nfs/share/ --username liuguangyuan5
+
+svn co "https://192.0.0.120/Medical/APP/trunk/SHUYE/DM3559" ~/nfs/app_59a/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/APP/trunk/SHUYE/DM3516_NET" ~/nfs/app_16a/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/Technic_Pre_research/Mdin3xxDriver" ~/nfs/mdin/new/ --username liuguangyuan5
+svn co "https://192.0.0.120/Medical/DSP/branches/Technic_Pre_research/Ti_cc2640r2f" ~/nfs/Ti/cc2640r2f/ --username liuguangyuan5
+
+* dir
+cd /workteam/liuguangyuan5/nfs/mpp/sample/
+
+mount -t nfs 10.22.38.233:/liuguangyuan5 /mnt -o nolock
+mount -t nfs 10.1.74.53:/workteam/liuguangyuan5/nfs/ /mnt -o nolock
+
+sudo mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/work/ ~/work -o nolock
+mount -t nfs -o intr,nolock,rsize=4096,wsize=4096 10.1.74.52:/data1/liuguangyuan5/nfs /mnt  
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/hi3559a-sdk/ /mnt/mnt_lgy/ -o nolock
+cd /mnt/mnt_lgy/mpp/out/linux/multi-core/ko/
+./load3559av100_multicore -a -sensor0 imx477 -sensor1 imx477 -sensor2 imx477 -sensor3 imx477 -sensor4 imx477 -sensor5 imx477 -sensor6 imx477 -sensor7 imx477
+cd /mnt/mnt_lgy/mpp/sample
+
+cd data/nfs/3559A/A73MP/lgyTest/
+
+cd /mnt/mnt_lgy/3559A/A73MP/lgyTest/
+
+
+net use W: \\10.22.38.118\liuguangyuan5 "liuguangyuan5" /user:"/hikvision\liuguangyuan5" /persistent:yes
+
+net use * /d /y
+net use x: \\10.1.74.52\liuguangyuan5 "1az694bjll" /user:"liuguangyuan5" /persistent:yes
+net use y: \\10.1.74.53\liuguangyuan5 "5cz87ww4xp" /user:"liuguangyuan5" /persistent:yes
+
+cmdkey /add:"10.1.74.53\liuguangyuan5" /user:"liuguangyuan5" /pass:"1az694bjll"
+cmdkey /add:"10.1.74.53\liuguangyuan5" /user:"liuguangyuan5" /pass:"5cz87ww4xp"
+cmdkey /add:"10.22.38.118\liuguangyuan5" /user:"liuguangyuan5" /pass:"liuguangyuan5"
+rmdir d:\netdisk\52-frontend
+rmdir d:\netdisk\53-backend
+rmdir d:\netdisk\118-bspdsp
+mklink /d "d:\netdisk\52-frontend" "\\10.1.74.52\liuguangyuan5"
+mklink /d "d:\netdisk\53-backend" "\\10.1.74.53\liuguangyuan5"
+mklink /d "d:\netdisk\118-bspdsp" "\\10.22.38.118\liuguangyuan5"
+
+
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/OF_Camera_Net /mnt -o nolock
+cp -f /mnt/bin/libdadsp.so /dav/
+cp -f /mnt/bin/hikdsp /dav/
+ls -l /dav
+
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/f1_mpsoc /mnt -o nolock; cd /mnt/;
+sync; chmod +x initrun.sh; clear; ./initrun.sh
+ps | grep hi
+cp /tmp/* /mnt/
+
+cd /dav/; rm -rf *; cp -rf /mnt/f1_app/package/package_r7_hi3516a/pack_tools/unpack_test/* /dav/
+
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/release /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/OF_Camera_Net /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/OF_Camera /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/MedicalDome_H1 /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/dfc210_s /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/f1_mpsoc /mnt -o nolock
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs/f1_mpsoc/demo/bin /mnt -o nolock
+
+cd ~/nfs/OF_Camera_Net/
+clear;./MakeAll_release.sh ipc
+
+cd share/SHUYE/F1/V2.1.0/DSP/demo/
+
+mount -t nfs 10.1.74.52:/ipcteam/liuguangyuan5/nfs /mnt -o nolock
+cd /mnt/helloworld/
+
+* ffmpeg
+
+ffmpeg -i D:\png2gif\%02d.png -vframes 36 -r 25 -y -f gif D:\png2gif\out.gif
+
+Generate a palette:
+ffmpeg -y -ss 30 -t 3 -i input.flv \
+-vf fps=10,scale=320:-1:flags=lanczos,palettegen palette.png
+
+Output the GIF using the palette:
+ffmpeg -ss 30 -t 3 -i input.flv -i palette.png -filter_complex \
+"fps=10,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" output.gif
+
+ffmpeg -r 15.0 –s 1280*640 –pix_fmt yuv422p –i screenrecord.yuv –vcodec mpeg4 screenrecord.avi
+ffmpeg -r 30.0 –s 1280*640 –pix_fmt nv16 –i 422sp.yuv –vcodec h264 422sp.avi
+ffplay 422sp.avi
+
+* com
+$FilePath = 'd:\aa'
+$file = [io.file]::ReadAllBytes($FilePath)
+[io.file]::WriteAllBytes('d:\hello',$file)
+
+$port = new-Object System.IO.Ports.SerialPort COM3,115200,None,8,one
+$port.Open()
+[io.file]::WriteAllBytes('d:\hello',$port)
+$port.Close()
+
+* theme
+Update-Link "C:\Users\liuguangyuan5\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell.lnk" light
+Update-Link "C:\Users\liuguangyuan5\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\System Tools\Command Prompt.lnk" dark
+
+runas /user:liuguangyuan5@hikvision.com /savecred powershell
+
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei & Microsoft YaHei UI (TrueType)" /t REG_SZ /d sarasa-term-sc-regular.ttf
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei Bold & Microsoft YaHei UI Bold (TrueType)" /t REG_SZ /d sarasa-term-sc-bold.ttf
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei Light & Microsoft YaHei UI Light (TrueType)" /t REG_SZ /d sarasa-term-sc-regular.ttf
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes" /v "Microsoft YaHei" /t REG_SZ /d "Sarasa Term SC"
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes" /v "Microsoft YaHei UI" /t REG_SZ /d "Sarasa Term SC"
+
+
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei & Microsoft YaHei UI (TrueType)" /t REG_SZ /d msyh.ttc
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei Bold & Microsoft YaHei UI Bold (TrueType)" /t REG_SZ /d msyhbd.ttc
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts" /v "Microsoft YaHei Light & Microsoft YaHei UI Light (TrueType)" /t REG_SZ /d msyhl.ttc
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes" /v "Microsoft YaHei" /t REG_SZ
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes" /v "Microsoft YaHei UI" /t REG_SZ
+
+* docker
+
+docker login --username=faultroll --password=1A2S3D4f
+docker login --username=faultroll --password=1A2S3D4f https://36aec6ba.m.daocloud.io
+
+* net
+
+ifconfig eth0 down; ifconfig eth0 hw ether 00:0a:75:fe:02:d0; ifconfig eth0 up;
+ifconfig eth0 10.22.38.177 netmask 255.255.255.0; route add default gw 10.22.38.254; ifcfg eth0 inet6 add fe80::20a:35ff:fe00:290/64
+
+./tcpdump -i eth0 -s 0 -w /tmp/tcpdump.pcap host 10.1.74.52
+
+* pandoc
+mpm.exe --set-repository=http://mirrors.zju.edu.cn/CTAN/systems/win32/miktex/tm/packages/
+
+pandoc C:\Users\liuguangyuan5\AppData\Local\Temp\mume11847-9848-mqd9e6.srakj.html -o b.tex
+
+pandoc a.tex -o a.pdf --pdf-engine=xelatex -V mainfont="Microsoft YaHei Mono"
+
+wkhtmltopdf.exe --page-size A4 "C:\Users\liuguangyuan5\AppData\Local\Temp\mume11848-10408-10bm5ww.h2py.html" "a.pdf"
+
+wkhtmltopdf.exe --page-size A4 --margin-bottom 0in --margin-top 0in --margin-left 0in --margin-right 0in "D:\download\Hi3531DV100 SDK.html" "a.pdf"
+
+pandoc "D:\\download\\Hi3531DV100 SDK.html" -o b.tex
+
+* other
+
+setDebug -l 3 -d 101 -m ALL 
+
+./configure --host=aarch64-himix100-linux
+http://oa9.hikvision.com.cn/hikvision/xz/wfcalendar.nsf/fmShowCalendar?OpenForm
+
+admin
+abcd1234
+a1111111
+12345
+12345678
+
+site:(die.net)
+
+./data2img -i ./data/backGround_0 -o b00.bmp -w 1280 -h 630 -l bin -f argb1555
+./data2img -i ./data/foreGround_1 -o f00.bmp -w 704 -h 512 -l bin -f argb1555
+
+printf("[%s:%s:%d] succ. <add-lgy>\n", __FILE__, __func__, __LINE__);
+
+./camCmd 1 8101043903FF
+./regtool 0xa0001604
+3600
+
+
+addr2line 0x400bc5 -e demo -apf
+
+grep -nrw "" --include=*.h *
+
+taskkill /F /IM explorer.exe
+start explorer.exe
+
+mkdir /ffff; mount -t cramfs /dev/mtdblock7 /ffff; mkdir /eeee; cp /ffff/* /eeee
+

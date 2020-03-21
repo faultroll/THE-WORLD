@@ -1,0 +1,310 @@
+﻿
+* study
+
+** 常用库
+*** menu
+只做rgn部分（哪个组，只做相关），从hifb到rgn到app面板一整套
+menu相关流程整理，osd相关查找，抽象编程（dsp和app相应函数注册后，该模块只关心逻辑），liteos相关
+分离：树结构（需要：xml库，树库）
+接口：初始化树（节点内需要回调函数，回调函数固定为FUNC(value)），保存树状态（节点值），画树（在第几个节点，画按钮）
+demo：画树函数直接用printf（与硬件无关）
+- tsearch等gnu tree：二叉树（左值小于右值）
+  对策：key从大到小（主菜单：1<sizeof(int)*8，下一项：主菜单+1，下一页：主菜单>>1；这样最多7页）
+  画按钮：单独画；记录当前key，用tfind找记录的key
+  画菜单：画整个菜单函数不需要，需要的是画行的函数（demo对应的是printf），然后用twalk
+  参数保存：twalk存储整个菜单
+
+- [X] 初始化button（tsearch便于查找）
+  - [X] button只需要key和callback（a/d操作，enter操作专门用来跳页）两个成员，固定name（共三个成员）
+- [X] 初始化page（insque？从文件读的value？）
+  - [X] value交给page来处理，这样button可以最大程度复用
+  - [X] twalk来遍历page，打印整个menu
+- [ ] draw page（对齐，value怎么画？）
+  - [ ] value通过查表获得，如果为NULL，则默认itoa
+- [X] release，检查是否有内存泄漏
+  - [X] tdestory
+  - [ ] remque+free
+
+
+*** hook
+1) 编译hook（不采用此方法）
+  需要改头文件，并且所有调用函数都需要引用头文件
+2) 链接hook
+   1) -Wl,--whole-archive暴露.a文件内容
+   2) .a文件生成时不能用strip，因为这样会去掉符号信息，用-Wl,--wrap=来替换时无法找到相应的函数
+   3) 防止递归调用。eg. free内部printf相应的信息，由于printf会调用malloc和free，这就导致递归调用free
+      需要增加计数变量called=0，且需要是__thread防止多线程干扰。在进入hook函数时called++，退出时called--，仅在called为1时做一些操作
+   4) 不能用__func__打印出caller函数（因为__func__是编译时的宏），只能通过backtrace来打印函数名（-rdynamic来将函数名等信息放入编译后的文件，这样不会被strip掉）
+   5) 仿照github那个写个单个函数来分发，但用表来管理
+3) 运行hook（不采用此方法）
+  虽然不需要修改源码（包括makefile），但也正是这样，这种方法会在所有调用被hook的函数时触发hook（因为无法区分是否是代码中的还是库内调用的），这与目标不符（替换代码中相应的函数）
+  #+BEGIN_SRC bash
+  LD_PRELOAD=$PWD/lib***.so ./***
+  #+END_SRC
+  .so +头文件，不用环境变量，能否钩住？
+
+** mdin
+1) i2c-slave in linux (slave->client, master->adapter)
+   - [X] 管脚复用
+   - [-] i2c读写
+     需要先写i2c，告诉slave相应的reg_addr，然后再做读/写操作
+     - [ ] 内核态
+     - [X] 用户态
+       - [X] read, write
+       - [ ] i2c_rdwr_ioctl_data
+       - [ ] i2c_smbus_ioctl_data
+
+** Ti
+*** 模块使用流程
+0) 硬件：引脚/跳线帽
+1) power（prcm）：radio cpu, system cpu
+2) clock
+   OSC: oscillator
+   - RC OSC: (R)esistors (C)apacitors OSC
+   - LC OSC: (L)enz inductor (C)apacitor OSC
+   - crystal OSC
+     HSXOSC: High speed crystal OSC
+3) 
+
+
+* environment
+** TODO docker GUI
+** TODO [/] IDE
+*** TODO github liumeteor
+** TODO 命令行管理工具（现cmd.txt/cmd.org太low）
+** TODO coverity
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ptz
+https://blog.csdn.net/leexin95/article/details/81234744
+https://chengengjie.github.io/
+https://github.com/easydarwin
+http://vclab.science.uoit.ca/index.html
+http://jevois.org/tutorials/UserPanTilt.html 
+https://www.onvif.org/specs/srv/ptz/ONVIF-PTZ-Service-Spec-v1812.pdf
+https://blog.csdn.net/weixin_41662133/article/details/82690701
+- joy stick control
+  - speed
+  - angle
+- tracking
+坐标变换：https://stackoverflow.com/questions/44253787/translating-screen-coordinates-x-y-to-camera-pan-and-tilt-angles
+https://www.experts-exchange.com/questions/21869528/How-to-calculate-Pan-Tilt-angles-by-x-y-screen-projection-pixel-coordinates-for-spheric-panorama.html
+https://www.cis.upenn.edu/~cis580/Spring2016/Lectures/cis580-05-2016-singleview-representation.pdf
+https://blog.csdn.net/kavstall/article/details/84193778
+http://web.mit.edu/6.111/www/f2014/projects/miren_Project_Final_Report.pdf
+http://www.ijanmc.org/201804/2018-04-07.pdf
+```
+全景PTZ摄像机的工作原理包括两个核心过程，即校准与联动，具体如下：
+应用之前，首先建立全景摄像机空间坐标系与高速球摄像机极坐标系的对应关系。该过程通常称为“点-面校准”。
+应用过程中，根据所建立的全景摄像机与高速球摄像机空间对应关系，将全景画面感兴趣区域的像素坐标转换为高速球摄像机的俯仰角度数和变倍数，并使高速球摄像机转动与缩放到对应的俯仰角度数和变倍数。该过程通常称为“点-面联动”。
+```
+
+stm32
+std, hal等：https://blog.csdn.net/csdnpapa/article/details/79309937
+https://blog.csdn.net/ZCShouCSDN/article/details/54613202
+https://github.com/STMicroelectronics/STM32Cube_MCU_Overall_Offer
+
+uart（流数据，分包）：https://blog.csdn.net/ForeverIT/article/details/81780923
+https://blog.csdn.net/sinat_20265495/article/details/71433633
+https://stackoverflow.com/questions/14049835/receive-message-of-undefined-size-in-uart-in-c
+https://blog.csdn.net/main_h_/article/details/77936623
+posix uart：https://www.cmrr.umn.edu/~strupp/serial.html
+parsing：https://stackoverflow.com/questions/16177947/identification-of-packets-in-a-byte-stream
+https://stackoverflow.com/questions/24394418/how-to-use-reactive-extensions-to-parse-a-stream-of-characters-from-a-serial-por
+datagram和data stream：https://stackoverflow.com/questions/13953912/difference-between-unix-domain-stream-and-datagram-sockets
+https://stackoverflow.com/questions/3017633/difference-between-message-oriented-protocols-and-stream-oriented-protocols
+https://stackoverflow.com/questions/14026858/tcp-ip-packets-and-datagrams
+Fragment, Segment, Packet, Frame, Datagram：https://stackoverflow.com/questions/11636405/definition-of-network-units-fragment-segment-packet-frame-datagram
+raw socket：https://opensourceforu.com/2015/03/a-guide-to-using-raw-sockets/
+https://blog.csdn.net/baidu_38316985/article/details/84531299
+osi & uart：https://www.applied-motion.com/news/2015/10/osi-model-part-2
+https://stackoverflow.com/questions/43574872/serial-protocols-and-the-osi-model
+https://stackoverflow.com/questions/13448285/minimum-number-of-layers-required-for-interconnection-of-two-systems/13452746
+https://stackoverflow.com/questions/815758/simple-serial-point-to-point-communication-protocol
+modbus, can bus：http://www.modbus.org/docs/Modbus_over_serial_line_V1.pdf
+https://blog.csdn.net/byxdaz/article/details/77892778
+https://bodgewires.github.io/tutorial/serial-protocol-in-c/
+crc, checksum：https://users.ece.cmu.edu/~koopman/pubs/KoopmanCRCWebinar9May2012.pdf
+ring buffer, kfifo：https://github.com/willemt/cbuffer
+https://zh.wikipedia.org/zh-hans/環形緩衝區
+https://mikeash.com/pyblog/friday-qa-2012-02-03-ring-buffers-and-mirrored-memory-part-i.html（Ring Buffers and Mirrored Memory）
+https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/
+https://trishagee.github.io/post/dissecting_the_disruptor_writing_to_the_ring_buffer/（http://mechanitis.blogspot.com/2011/07/dissecting-disruptor-writing-to-ring.html）
+https://embeddedartistry.com/blog/2017/4/6/circular-buffers-in-cc
+https://codereview.stackexchange.com/questions/164130/elegant-circular-buffer
+https://github.com/angrave/SystemProgramming/wiki/Synchronization%2C-Part-8%3A-Ring-Buffer-Example
+posix MAP_ANON：https://stackoverflow.com/questions/34042915/what-is-the-purpose-of-map-anonymous-flag-in-mmap-system-call
+http://lkml.iu.edu/hypermail/linux/kernel/0006.3/0026.html
+https://stackoverflow.com/questions/41529420/mmap-file-backed-mapping-vs-anonymous-mapping-in-linux
+https://blog.csdn.net/unix21/article/details/12893171
+
+SEI CERT C：https://wiki.sei.cmu.edu/confluence/display/c/SEI+CERT+C+Coding+Standard
+流式数据处理：https://www.slidestalk.com/u70/TRabl_StreamProcessing156383
+flexible array：https://stackoverflow.com/questions/246977/is-using-flexible-array-members-in-c-bad-practice
+lock-free datastructure：https://github.com/liblfds
+
+
+
+
+
+
+- 拨码状态查询命令
+- uart升级（指令预留）
+- 485芯片配置
+- 状态灯
+- 硬件测试接口（前端，fpga交互）
+- 指令兼容性（uart接现在的按键板依旧可用）
+
+
+** uart相关
+   - 设备号*2（2个uart）
+     - ioctl命令（设置波特率等）
+       应该是linux内核通用，可以再确认下
+     - 设备号是否固定（2个uart是否跟设备号一一对应）
+       应该是固定的，可以再确认下
+   - 镜像接口
+   - 分辨率设置接口（圆形拨码）
+   - 报警输入接口
+   - 红外遥控器相关
+     根据菜单确定（陶工那边确认）
+   - 485命令接口
+     如果有直接485命令处理，我们透传即可（如pelco-d命令)
+     如果没有，那么485命令相关功能的接口我们都需要
+     - zoom/focus/iris控制
+       - +/-
+       - 速度
+     - set af
+     - backlight
+     - set awb
+     - 预置点
+     - 曝光
+     - 聚集模式
+     - 冻结
+     - 镜像（同镜像接口）
+     - 其他我们后期可能需要的定制命令
+** 云台板/ptz相关
+   - zoom/focus/iris控制
+     同485命令接口
+   - 遮蔽坐标实时更新
+** 硬件测试
+   - 测试形式如何（不太清楚）。。。
+   - 需要我们提供给他们哪些东西
+** 485相关
+   - 前端的485参数获取接口
+     是否不用前端的485参数，用我们自己的
+   - 前端的485参数设置接口
+     即使不用前端的485参数也需要，因为要让他们的参数跟我们保持一致
+
+
+
+
+1) 下载sdk(Keil.STM32F1xx_DFP.*.*.*.pack)
+https://www.keil.com/dd2/stmicroelectronics/stm32f103vb/
+不需要
+1) 下载SDK
+https://www.stmicroelectronics.com.cn/en/embedded-software/stm32-standard-peripheral-libraries.html
+选择f1，进入下载页面，填写自己的外网邮箱地址，进行下载
+也可以用github上的下载链接
+https://github.com/STMicroelectronics/STM32CubeF1/releases
+
+
+
+** 3*2=6个队列（UART1,2；命令分发；双向）
+   - 队列不能被阻塞，但命令有阻塞
+     - 一个线程写队列，另一个取队列，取出之后再转发
+       该问题发生在转发的时候，这个取的线程会被阻塞
+     - 命令阻塞的情况下也要按顺序过去，不能每个都单独创建线程
+** 建立一张命令解析表
+   - 命令 枚举/回调 是否阻塞
+     问题：命令带参数 如何制表
+     通过data位和非data位？
+** 复用
+   术野的按键板接到fpga的UART上要求能正常工作
+   uart串口直接接收命令的情况
+** 数据传输
+   升级包，查询数据，...
+
+
+
+
+
+** fifo
+queue-->ring buffer-->bip buffer
+*** queue
+    - list
+      内存操作多
+    - array
+      不能无限增长，要数据搬移
+*** ring buffer
+    - full/empty
+      如何判断
+      mirror memory不需要真分配内存，只需要index
+    - data
+      连续性
+      mirror memory需要真正分配两块内存
+**** TODO
+     1) size/head/tail等变量的范围（long, size << 1, ...）
+     2) anonymous memory获取优化（assert, mkstemp重复部分抽取函数）
+     3) 测试（main.c）完善
+
+
+** stream2packet
+read uart --> fifo
+parse fifo --> cmd packet
+translate cmd --> enum
+dispatch packet 
+
+
+
+** U盘
+*** backend
+- 流程
+  streamRecord.c --> streamRecordEx
+    --> stor_ex_find_dev --> searchUsbDevices --> mount
+        statfs判断文件系统
+    --> stor_ex_ready_dev --> REC_EX_TYPE_UDISK
+- 多个usb口
+  带hub，有多个，但只会有一个用来录像
+- 录像格式
+  ps流，其他需求
+- USB热插拔
+  录像损坏？
+- 文件系统格式
+  vfat/ntfs, statfs检测
+  - 格式化
+    fat32 4g大小限制，大于64G不支持fat32
+  - 设备大小
+    getMediaRecorderEx --> "struUsbDev"
+    也是statfs检测
+
+*** frontend
+allocNewFile --> MK_AVFILE_NAME --> part_service -->
+searchAvailablePartition
+
+UniHwIF_sdctrl --> init_hdisk
+               --> simple_mount
+
+
+

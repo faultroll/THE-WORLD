@@ -1,0 +1,766 @@
+﻿
+#+TITLE: Job
+
+#+OPTIONS: ^:nil
+#+OPTIONS: \n:t
+
+#+LATEX_HEADER: \usepackage{xeCJK}
+#+LATEX_HEADER: \setmainfont{Ubuntu Mono}
+#+LATEX_HEADER: \setsansfont{Ubuntu Mono}
+#+LATEX_HEADER: \setmonofont{Ubuntu Mono}
+#+LATEX_HEADER: \setCJKmainfont{Source Han Sans HW}
+#+LATEX_HEADER: \setCJKsansfont{Source Han Sans HW}
+#+LATEX_HEADER: \setCJKmonofont{Source Han Sans HW}
+
+* Task
+** xilinx
+*** [1/2] stat
+- [-] 需求 [2/3]
+  1) [X] 内存使用情况
+  2) [ ] 信号量（cmd调用情况）
+  3) [X] 各线程状态（cpu占用等）
+- 建议
+- [X] 方案 [/]
+  1) [X] 结构体存储
+  2) [X] 指针数组
+*** [0/2] signal
+- [ ] 需求 [0/1]
+  1) [ ] 异常退出时需要打印stat
+- 建议
+- [ ] 方案 [/]
+*** [2/2] 机芯库
+- [X] 需求 [7/7]
+  1) [X] 相关文件和脚本烧到flash内，可以进入系统后找到对应文件和脚本，执行脚本启动app, dsp程序，出图以便他调曲线
+  2) [X] 能更换文件，需要给他相应的命令用来更换文件
+  3) [X] f2基础同f1需求
+  4) [X] 要求程序不执行机芯库相关操作（由机芯库自行创建进程来测试）
+  5) [X] 要求dsp内部的机芯库版本跟共享svn上一致（保持最新）
+  6) [X] 要求机芯库读写flash操作正常，update升级后数据不消失
+  7) [X] 增加打大包的脚本
+- 建议
+  1) 现在bsp相关的资源都是按4cg的做的，要烧到6cg上需要退回uboot，devicetree，和rootfs等 ，并且需要测试；至少需要1天时间
+  2) 现在没做app相关分区，只能放到rootfs内；这样更换文件不方便（每次都要bsp重新打包uImage，然后传给对方让对方烧）
+  3) 旧板子是64M，只能有前64M
+  4) App分区，现在没有做成文件系统的方式，只能将需要的文件放入到rootfs当中，这样如果想替换rootfs就要更换uImage整个文件。
+  5) 目前资源是4cg的，要将uboot, devicetree，重新退回到6cg，同时重新制作rootfs，将DSP文件放到rootfs中，直接写入到flash上。
+- [X] 方案 [4/4]
+  1) [X] bsp烧文件系统，并建立分区，/dav/ 目录下可读写且掉电不消失，/coredump/ 目录下可读写，掉电消失
+  2) [X] svn上传相应的资源
+  3) [X] flash操作可选择分区
+  4) [X] 大包脚本从app svn移植
+*** [1/2] isp
+- [X] 需求 [1/1]
+  1) [X] 面板手动聚焦功能
+- 建议
+- [ ] 方案 [0/0]
+  1) [ ] 定位报错
+    #+BEGIN_QUOTE
+    [12-20 15:31:38][pid:0][PTZ][ERROR][ipzMenuLib_UniIf_func_call] ipzMenuLib_UniIf_func_call ERROR NULL!
+    #+END_QUOTE
+*** [2/2] 菜单逻辑
+- [X] 需求 [1/1]
+  1) [X] 只在变化时画菜单
+- 建议
+- [X] 方案 [1/1]
+  1) [X] 流程
+     1. vd中断
+     2. 判断osd（tag+menu）是否改变，未改变continue
+     tag：关闭--开启，时间变化，开启--关闭
+     menu：关闭--开启，开启--关闭
+     3. 清空osd buf
+     4. 判断tag是否开启，是则画tag至dsp
+     updatetag不判断是否改变
+     5. 判断menu是否开启，是则画menu至dsp
+     6. 判断fpga是否开启，是则画dsp至fpga
+** hisi
+*** [0/2] 概要设计
+- [-] 需求 [1/2]
+  1) [X] visio画图
+  2) [ ] 文字说明
+- 建议
+- [-] 方案 [/]
+  1) [X] vo.c: HDMI, overlay
+  2) [X] videoProcess.c: mosaic, privacy
+  3) [ ] enc.c:roi
+  4) [X] osd.c: osd相关
+  5) [X] streampack.c: audio相关
+  6) [ ] host.c: host.h
+*** [2/2] yuv2rgb
+- [X] 需求 [1/1]
+  1) [X] 至少25fps
+- 建议
+  1) 通过SIMD优化速度
+- [X] 方案 [/]
+  1) [X] 浮点运算：300+ ms
+  2) [X] 查表（LUT）：260+ ms
+  3) [X] NEON：40ms左右（优化后30ms以内，加上vgs相关操作35ms以内，可以满足25fps）
+*** [1/2] mdin
+- [ ] 需求 [0/1]
+  1) [ ] .a+.h的模式
+- 建议
+  1) I2C 怎么办？
+  2) 接口函数要哪些
+- [X] 方案 [1/1]
+  1) [X]  I2C用liteOS自带的
+  2) [ ] 接口函数模仿驱动（open, close, read, write, ioctl）
+** 培训作业
+*** TODO [0/2] 编程作业
+- [-] 需求 [1/3]
+  1) [ ] 断点续传
+  2) [ ] 多对多传输
+  3) [X] UDP&TCP切换
+- 建议
+- [-] 方案 [/]
+  1) [X] 虚拟机环境搭建
+  2) [X] TCP/IP通信（socket）
+  3) [X] cmd进程（进程间通信）
+  4) [ ] md5文件校验
+
+
+* Bug
+** xilinx
+*** [1/2] 01
+- 现象
+  memset, fread等操作内存的c标准库函数报错
+  #+BEGIN_QUOTE
+  unhandled alignment fault (11) at 0x7f73f7a000, esr 0x92000061
+  #+END_QUOTE
+- [-] 定位
+  发现错误是由不同的原因引起的：
+  1) [X] fread：由问题xilinx-04定位
+  2) [-] memset：
+     1) [X] 内存为MEM_CACHED时正常，但为MEM_NO_CACHE时报错
+     2) [X] 整段内存不可写，与对齐和是否cache无关
+     3) [ ] 待确认
+- [X] 方案
+  1) [X] fread：见问题xilinx-04
+  2) [X] memset：未定位，暂时用CPU操作规避
+*** [2/2] 02
+- 现象
+  MEM_CACHED内存进行dma操作时会出现拷贝不完全的问题
+- [X] 定位
+  1) [X] dma拷贝前未对src进行callback操作，拷贝后未对dst进行invalid操作
+- [X] 方案
+  1) [X] 增加cache相关操作
+*** [2/2] 03
+- 现象
+  CMEM_CACHE_FLUSH, CMEM_CACHE_INVALIDATE ioctl操作报错
+  #+BEGIN_QUOTE
+  [   71.386674] Internal error: Oops: 96000144 [#1] SMP
+  [   71.396997] Modules linked in: axi_trans_if(O) cmem_drv(O) decode_irq(O) an41908(O)
+  [   71.404628] CPU: 0 PID: 1927 Comm: Dsp_HostCmd Tainted: G           O    4.9.0-svn4978 #246
+  [   71.412966] Hardware name: xlnx,zynqmp (DT)
+  [   71.417126] task: ffffffc07d936180 task.stack: ffffffc00b0bc000
+  [   71.423034] PC is at __flush_dcache_area+0x20/0x40
+  [   71.427804] LR is at hik_flush_dcache_area+0xc/0x18
+  [   71.432664] pc : [<ffffff8008094970>] lr : [<ffffff8008094dfc>] pstate: 80000145
+  [   71.440047] sp : ffffffc00b0bfd90
+  [   71.443339] x29: ffffffc00b0bfd90 x28: ffffffc00b0bc000 
+  [   71.448632] x27: ffffff80086c2000 x26: 000000000000001d 
+  [   71.453927] x25: 0000000000000123 x24: 0000000000000015 
+  [   71.459222] x23: 0000007f1effe838 x22: ffffffc07d8d9e00 
+  [   71.464517] x21: 0000007f1effe838 x20: 0000000000000000 
+  [   71.469811] x19: ffffff80006d4000 x18: 00000000ffff593f 
+  [   71.475106] x17: 0000007f8916f140 x16: ffffff800819c740 
+  [   71.480401] x15: 0000000000000020 x14: 0000000000000042 
+  [   71.485696] x13: 000000000001d110 x12: 0000000000000040 
+  [   71.490991] x11: 0000007f4a5714af x10: 000000000000a7c1 
+  [   71.496286] x9 : 0000000000000028 x8 : 0000000000000580 
+  [   71.501581] x7 : 0000007f4a571470 x6 : ffffffc00b0bfe00 
+  [   71.506875] x5 : ffffffc00b0bfe00 x4 : 0000000000000008 
+  [   71.512170] x3 : 000000000000003f x2 : 0000000000000040 
+  [   71.517465] x1 : ffffff7f28e45660 x0 : ffffff7f28e450c0 
+  [   71.522760] 
+  [   71.524237] Process Dsp_HostCmd (pid: 1927, stack limit = 0xffffffc00b0bc020)
+  [   71.531357] Stack: (0xffffffc00b0bfd90 to 0xffffffc00b0c0000)
+  [   71.537086] fd80:                                   ffffffc00b0bfda0 ffffff80006d226c
+  [   71.544904] fda0: ffffffc00b0bfe00 ffffff800819c094 ffffffc07d8d9e01 ffffffc00d481d18
+  [   71.552716] fdc0: ffffffc07d8d9e00 0000007f1effe838 0000007f1effe838 0000000000000015
+  [   71.560529] fde0: 0000000000000000 00000000200050e0 0000007f4a571470 0000000000000580
+  [   71.568341] fe00: ffffffc00b0bfe80 ffffff800819c784 ffffffc07d8d9e01 0000000000000005
+  [   71.576153] fe20: ffffffc07d8d9e00 000000004008530c 0000007f1effe838 0000000000000000
+  [   71.583965] fe40: ffffffc00b0bfe80 ffffff800818aaec ffffffc00c12da01 ffffffc00c12da00
+  [   71.591777] fe60: ffffffc00b0bfe70 ffffff80081a7290 ffffffc00b0bfe80 ffffff800819c764
+  [   71.599589] fe80: 0000000000000000 ffffff8008082ef0 0000000000000000 0000000000445768
+  [   71.607401] fea0: ffffffffffffffff 0000007f8916f14c 0000000080000000 0000000000000000
+  [   71.615213] fec0: 0000000000000005 000000004008530c 0000007f1effe838 0000007f49054000
+  [   71.623025] fee0: 0000007f4a574c30 0000000000445004 0000007f1effe08c 0000000000000000
+  [   71.630837] ff00: 000000000000001d 0000007f1effe860 000000000000a7c1 0000007f4a5714af
+  [   71.638649] ff20: 0000000000000040 000000000001d110 0000000000000042 0000000000000020
+  [   71.646461] ff40: 00000000004423e0 0000007f8916f140 00000000ffff593f 0000000000445000
+  [   71.654273] ff60: 0000000000445768 0000000000005b00 0000000000000001 0000000000456000
+  [   71.662085] ff80: 00000000200050e0 0000000000000580 0000000000000f00 0000000021520c30
+  [   71.669897] ffa0: 0000000000000870 0000007f1effe810 00000000004053ec 0000007f1effe810
+  [   71.677710] ffc0: 0000007f8916f14c 0000000080000000 0000000000000005 000000000000001d
+  [   71.685522] ffe0: 0000000000000000 0000000000000000 ffffffffffffffff ffffffffffffffff
+  [   71.693332] Call trace:
+  [   71.695757] Exception stack(0xffffffc00b0bfbc0 to 0xffffffc00b0bfcf0)
+  [   71.702182] fbc0: ffffff80006d4000 0000008000000000 ffffffc00b0bfd90 ffffff8008094970
+  [   71.709999] fbe0: 0000007f891f14e0 0000000000000000 0000000000000000 0000000000000000
+  [   71.717812] fc00: ffffffc00b0bfc20 ffffff8008381a1c 0000000000000000 ffffff80080ff280
+  [   71.725624] fc20: ffffffc00b0bfc30 ffffff8008381cec ffffffc00b0bfc90 ffffff80083670a8
+  [   71.733436] fc40: ffffffc00b0bfc60 ffffff8008381a1c ffffff80089ecd38 ffffff8008c372a8
+  [   71.741248] fc60: ffffff7f28e450c0 ffffff7f28e45660 0000000000000040 000000000000003f
+  [   71.749060] fc80: 0000000000000008 ffffffc00b0bfe00 ffffffc00b0bfe00 0000007f4a571470
+  [   71.756872] fca0: 0000000000000580 0000000000000028 000000000000a7c1 0000007f4a5714af
+  [   71.764684] fcc0: 0000000000000040 000000000001d110 0000000000000042 0000000000000020
+  [   71.772495] fce0: ffffff800819c740 0000007f8916f140
+  [   71.777351] [<ffffff8008094970>] __flush_dcache_area+0x20/0x40
+  [   71.783171] [<ffffff80006d226c>] cmem_ioctl+0x1b4/0x318 [cmem_drv]
+  [   71.789333] [<ffffff800819c094>] do_vfs_ioctl+0xa4/0x750
+  [   71.794626] [<ffffff800819c784>] SyS_ioctl+0x44/0x80
+  [   71.799573] [<ffffff8008082ef0>] el0_svc_naked+0x24/0x28
+  [   71.804868] Code: 9ac32042 8b010001 d1000443 8a230000 (d50b7e20) 
+  #+END_QUOTE
+- [X] 定位
+  1) [X] cmem内部取虚拟地址时出错
+- [X] 方案
+  1) [X] cmem内部增加结构体保存虚拟地址和物理地址
+*** [2/2] 04
+- 现象
+  物理地址相邻的两块内存发生内存重叠，但phy2-phy1=size1（即不满足发生重叠的条件）
+- [X] 定位
+  1) [X] mmap的物理地址为pagesize对齐，但dsp给app的物理地址不保证是pagesize对齐，mmap取虚拟地址时phy2和phy1两块地址发生了重叠
+- [X] 方案
+  1) [X] dsp allocmem时align设置为pagesize（待进一步测试验证）
+*** [1/2] 05
+- 现象
+  短时间大量dma拷贝操作，内核报错
+  #+BEGIN_QUOTE
+  [  438.503932] Unable to handle kernel NULL pointer dereference at virtual address 00000000
+  [  438.511956] pgd = ffffffc00d0bf000
+  [  438.515329] [00000000] *pgd=000000000c38e003[  438.519401] , *pud=000000000c38e003
+  , *pmd=0000000000000000[  438.524864] 
+  [  438.526346] Internal error: Oops: 96000006 [#1] SMP
+  [  438.531207] Modules linked in: uart485(O) axi_trans_if(O) cmem_drv(O) decode_irq(O) an41908(O)
+  [  438.539801] CPU: 0 PID: 1922 Comm: hicore Tainted: G           O    4.9.0-svn5152 #253
+  [  438.547704] Hardware name: xlnx,zynqmp (DT)
+  [  438.551865] task: ffffffc00d29b080 task.stack: ffffffc00d478000
+  [  438.557775] PC is at zynqmp_dma_free_descriptor+0x34/0x88
+  [  438.563151] LR is at zynqmp_dma_chan_desc_cleanup+0x88/0xb8
+  [  438.568705] pc : [<ffffff800835ce74>] lr : [<ffffff800835cfc0>] pstate: 00000145
+  [  438.576088] sp : ffffffc00ffa4eb0
+  [  438.579380] x29: ffffffc00ffa4eb0 x28: 0000000000000000 
+  [  438.584673] x27: ffffffc00d478000 x26: 0000000000000100 
+  [  438.589968] x25: dead000000000100 x24: dead000000000200 
+  [  438.595263] x23: ffffffc00d42cc68 x22: ffffffc00d42cc18 
+  [  438.600558] x21: ffffffc00d42cc28 x20: ffffffc00d42cc50 
+  [  438.605852] x19: ffffffc07d942000 x18: 00000000000007f4 
+  [  438.611147] x17: 0000007fa3b847f0 x16: 0000000000415a10 
+  [  438.616442] x15: 00000000000007d7 x14: 0000000000000000 
+  [  438.621737] x13: 0000000000000000 x12: 0000000000000000 
+  [  438.627032] x11: 0000000000000040 x10: ffffffc00d800028 
+  [  438.632327] x9 : ffffffc00d800088 x8 : 0000000000000000 
+  [  438.637622] x7 : ffffffc00d42cc40 x6 : ffffffc07d942028 
+  [  438.642916] x5 : 0000000000000002 x4 : ffffffc07d942018 
+  [  438.648211] x3 : ffffffc07d943378 x2 : 0000000000000000 
+  [  438.653506] x1 : 0000000000000000 x0 : ffffffc00d42cc18 
+  [  438.658800] 
+  [  438.660278] Process hicore (pid: 1922, stack limit = 0xffffffc00d478020)
+  [  438.666964] Stack: (0xffffffc00ffa4eb0 to 0xffffffc00d47c000)
+  [  438.672692] Call trace:
+  [  438.675123] Exception stack(0xffffffc00ffa4ce0 to 0xffffffc00ffa4e10)
+  [  438.681548] 4ce0: ffffffc07d942000 0000008000000000 ffffffc00ffa4eb0 ffffff800835ce74
+  [  438.689365] 4d00: ffffffc00ffa4e70 ffffff80080827b0 ffffffc00ffa4d40 0000008000000000
+  [  438.697177] 4d20: ffffffc00ffa4e70 ffffff80086b1e40 0000000060000145 dead000000000200
+  [  438.704989] 4d40: ffffffc00b7a7d58 0000000000000140 0000000000000002 0000000000000000
+  [  438.712801] 4d60: 0000000000000000 0000000000000002 000000000b89d1ec ffffffc00de6f200
+  [  438.720613] 4d80: ffffffc00d42cc18 0000000000000000 0000000000000000 ffffffc07d943378
+  [  438.728425] 4da0: ffffffc07d942018 0000000000000002 ffffffc07d942028 ffffffc00d42cc40
+  [  438.736237] 4dc0: 0000000000000000 ffffffc00d800088 ffffffc00d800028 0000000000000040
+  [  438.744049] 4de0: 0000000000000000 0000000000000000 0000000000000000 00000000000007d7
+  [  438.751861] 4e00: 0000000000415a10 0000007fa3b847f0
+  [  438.756718] [<ffffff800835ce74>] zynqmp_dma_free_descriptor+0x34/0x88
+  [  438.763141] [<ffffff800835e15c>] zynqmp_dma_do_tasklet+0x44/0xf0
+  [  438.769132] [<ffffff800809e4ec>] tasklet_action+0x74/0x110
+  [  438.774599] [<ffffff800809e6d4>] __do_softirq+0xfc/0x218
+  [  438.779893] [<ffffff800809eabc>] irq_exit+0xac/0xf0
+  [  438.784754] [<ffffff80080da8f8>] __handle_domain_irq+0x60/0xb8
+  [  438.790570] [<ffffff80080814cc>] gic_handle_irq+0x64/0xc0
+  [  438.795950] Exception stack(0xffffffc00d47bec0 to 0xffffffc00d47bff0)
+  [  438.802374] bec0: 0000000000000000 000000002c988050 0000000000000000 0000000000000000
+  [  438.810192] bee0: 00000000ffffffff 0000000000001011 000000002c986056 0000000000001010
+  [  438.818004] bf00: 000000000000003f 0000007ff362f100 0101010101010101 000000000000001b
+  [  438.825816] bf20: 0000000000000000 0000000000000000 0000000000000000 00000000000007d7
+  [  438.833628] bf40: 0000000000415a10 0000007fa3b847f0 00000000000007f4 0000007fa3c5c788
+  [  438.841440] bf60: 0000007fa3d8a000 0000000000400fb8 0000000000000000 0000000000000000
+  [  438.849252] bf80: 0000000000000000 0000000000000000 0000000000000000 0000000000000000
+  [  438.857064] bfa0: 0000000000000000 0000007ff362f0f0 0000007fa3b848e8 0000007ff362f0f0
+  [  438.864876] bfc0: 0000007fa3b89820 0000000060000000 0000000000000000 ffffffffffffffff
+  [  438.872687] bfe0: 0000000000000000 0000000000000000
+  [  438.877544] [<ffffff8008082ccc>] el0_irq_naked+0x48/0x5c
+  [  438.882839] Code: f9000064 f8428cc2 aa0203e1 eb06005f (f85e8443) 
+  [  438.888930] ---[ end trace eb4832293d836929 ]---
+  [  438.893520] Kernel panic - not syncing: Fatal exception in interrupt
+  [  438.899851] SMP: stopping secondary CPUs
+  [  438.903757] Kernel Offset: disabled
+  [  438.907227] Memory Limit: 512 MB
+  [  438.910440] ---[ end Kernel panic - not syncing: Fatal exception in interrupt
+  #+END_QUOTE
+- [-] 定位
+  1) [X] 怀疑是dma前后的cache操作造成（排除，关闭相关操作仍然出错）
+  2) [X] 怀疑是跟fpga交互造成（排除，关闭相关操作仍然出错）
+  3) [ ] 怀疑是多线程导致（未确认）
+- [X] 方案
+  1) [X] 暂时先使用cpu进行操作
+
+*** [1/2] 06
+- 现象
+  同一个物理地址，dsp进程memset正常，app进程memset报错，但通过cpu循环直接写内存不报错
+  #+BEGIN_QUOTE
+  [ 1194.449282] davinci[2016]: unhandled alignment fault (11) at 0x7f81234000, esr 0x92000061
+  [ 1194.449288] pgd = ffffffc00c435000
+  [ 1194.449290] [7f81234000] *pgd=000000000c464003
+  [ 1194.449291] , *pud=000000000c464003
+  [ 1194.449293] , *pmd=000000000c70a003
+  [ 1194.449294] , *pte=0168000021523fc3
+  [ 1194.449295] 
+  [ 1194.449296] 
+  [ 1194.449302] CPU: 1 PID: 2016 Comm: davinci Tainted: G           O    4.9.0-svn5567 #283
+  [ 1194.449303] Hardware name: xlnx,zynqmp (DT)
+  [ 1194.449305] task: ffffffc00c7c8300 task.stack: ffffffc00b8a8000
+  [ 1194.449309] PC is at 0x7f82421a68
+  [ 1194.449311] LR is at 0x4bd058
+  [ 1194.449313] pc : [<0000007f82421a68>] lr : [<00000000004bd058>] pstate: 40000000
+  [ 1194.449315] sp : 0000007fd3e1a930
+  [ 1194.449316] x29: 0000007fd3e1a940 x28: 00000000008748a0 
+  [ 1194.449320] x27: 0000007f81234000 x26: 0000000000874000 
+  [ 1194.449323] x25: 0000000000870000 x24: 000000000018c000 
+  [ 1194.449326] x23: 0000000000a29000 x22: 0000000000000000 
+  [ 1194.449330] x21: 0000000000874000 x20: 0000000000874000 
+  [ 1194.449333] x19: 0000000000a2a000 x18: 00000000000007f4 
+  [ 1194.449336] x17: 0000007f82421900 x16: 0000000000968d28 
+  [ 1194.449340] x15: 0000000000000000 x14: 0000000000000000 
+  [ 1194.449343] x13: 0000000000000000 x12: 0000000000000000 
+  [ 1194.449346] x11: 0000000000000000 x10: 0000000000000000 
+  [ 1194.449349] x9 : 0000000000000004 x8 : 0000007f81234000 
+  [ 1194.449353] x7 : 0000000000000000 x6 : 000000000000003f 
+  [ 1194.449356] x5 : 0000000000000040 x4 : 0000000000000000 
+  [ 1194.449359] x3 : 0000000000000004 x2 : 000000000018bfc0 
+  [ 1194.449362] x1 : 0000000000000000 x0 : 0000007f81234000 
+  #+END_QUOTE
+- [ ] 定位
+  1) [ ] 怀疑是glibc有问题（经确认无私有库覆盖了glibc），需要确认是否是glibc库有问题
+  2) [ ] 怀疑是多线程导致（未确认）
+- [X] 方案
+  1) [X] 暂时先使用cpu进行操作
+  #+BEGIN_SRC c
+  #define xilinx_MEMSET(addr, val, size) \
+      do { \
+          unsigned char *addr_vir = (unsigned char *)addr; \
+          unsigned char val_char = (unsigned char)val; \
+          size_t size_len = (size_t)size; \
+          if (NULL == addr_vir) \
+          { \
+              break; \
+          } \
+          for (size_t idx = 0; idx < size_len; idx++) \
+          { \
+              addr_vir[idx] = val_char; \
+          } \
+      } while (0);
+  #+END_SRC
+*** [1/2] 07
+- 现象
+  读写锁造成机芯库报错（每次报错位置不一样）
+  #+BEGIN_QUOTE
+  [  105.749333] AutoFocusAndMot[1950]: unhandled level 2 translation fault (11) at 0x00000000, esr 0x82000006
+  [  105.760786] pgd = ffffffc00c61a000
+  [  105.764151] [00000000] *pgd=000000000d6aa003
+  [  105.768221] , *pud=000000000d6aa003
+  [  105.771702] , *pmd=0000000000000000
+  [  105.773683] 
+  [  105.775166] 
+  [  105.776644] CPU: 1 PID: 1950 Comm: AutoFocusAndMot Tainted: G           O    4.9.0-svn5567 #283
+  [  105.785332] Hardware name: xlnx,zynqmp (DT)
+  [  105.789500] task: ffffffc00d64e180 task.stack: ffffffc00bb7c000
+  [  105.795399] PC is at 0x0
+  [  105.797906] LR is at 0x0
+  [  105.803813] pc : [<0000000000000000>] lr : [<0000000000000000>] pstate: 60000000
+  [  105.811205] sp : 0000007f34ffe860
+  [  105.814659] x29: 0000000000000000 x28: 0000000000000001 
+  [  105.819952] x27: 0000007fa3122000 x26: 0000007f34ffe9c5 
+  [  105.825247] x25: 0000007fa3121000 x24: 0000000000000003 
+  [  105.830541] x23: 0000007fa313396c x22: 0000000000000000 
+  [  105.835836] x21: 0000000000000000 x20: 0000000000000000 
+  [  105.841131] x19: 0000000000000000 x18: 0000007fa313cef0 
+  [  105.846426] x17: 0000007fa2fa7b58 x16: 0000007fa2feb360 
+  [  105.851721] x15: 0000238b1d4af0d5 x14: 002887f9d7f57630 
+  [  105.857016] x13: 00000003e8000000 x12: 0000000000000018 
+  [  105.862311] x11: 00000000000a6959 x10: 000000007ebf7c5b 
+  [  105.870991] x9 : 003b9aca00000000 x8 : 0000000000000062 
+  [  105.876459] x7 : 0000000000000000 x6 : 0000007f34ffe7cc 
+  [  105.881754] x5 : 0000007f34fff308 x4 : 0000007f34fff200 
+  [  105.887049] x3 : 0000000000000000 x2 : 0000007f34fff200 
+  [  105.892344] x1 : 0000000000000000 x0 : 0000000000000000 
+  #+END_QUOTE
+  #+BEGIN_QUOTE
+  [  535.608038] ipzoomThread[1982]: unhandled level 2 translation fault (11) at 0x00000000, esr 0x82000006
+  [  535.617312] pgd = ffffffc00d203000
+  [  535.620657] [00000000] *pgd=000000000bb73003
+  [  535.624732] , *pud=000000000bb73003
+  [  535.628210] , *pmd=0000000000000000
+  [  535.630196] 
+  [  535.631677] 
+  [  535.633151] CPU: 0 PID: 1982 Comm: ipzoomThread Tainted: G        W  O    4.9.0-svn5567 #283
+  [  535.641589] Hardware name: xlnx,zynqmp (DT)
+  [  535.645750] task: ffffffc00df3d400 task.stack: ffffffc00dd88000
+  [  535.655207] PC is at 0x0
+  [  535.657719] LR is at 0x0
+  [  535.660248] pc : [<0000000000000000>] lr : [<0000000000000000>] pstate: 00000000
+  [  535.667630] sp : 0000007f2e52e960
+  [  535.670913] x29: 0000007f2e52e960 x28: 0000000000000001 
+  [  535.676199] x27: 0000007f92937000 x26: 0000007f2e52e9ef 
+  [  535.681494] x25: 0000007f92993000 x24: 0000007f9293e000 
+  [  535.686789] x23: 0000007f9293ff48 x22: 00000000000000fe 
+  [  535.692084] x21: 0000000000000008 x20: 0000007f9293e390 
+  [  535.697378] x19: 000000000000009d x18: 00000000000007f4 
+  [  535.702673] x17: 0000007f926ac0b0 x16: 0000000000000000 
+  [  535.707968] x15: 0000000000000000 x14: 0000000000000014 
+  [  535.713263] x13: 0000000000000001 x12: 0101010101010101 
+  [  535.722117] x11: 2ce33e6c02ce33e7 x10: 000000000000016d 
+  [  535.727412] x9 : ffffffffffffffe8 x8 : 0000000000000065 
+  [  535.732706] x7 : 0000000000000000 x6 : 0000007f2e52e91c 
+  [  535.738001] x5 : 0000007f2e52f308 x4 : 0000007f2e52f200 
+  [  535.743296] x3 : 0000000000000002 x2 : 0000000000000000 
+  [  535.748591] x1 : 0000000000000002 x0 : 0000000000000000 
+  #+END_QUOTE
+  #+BEGIN_QUOTE
+  [  183.234112] front_camera_ta[2040]: unhandled level 2 translation fault (11) at 0x0000c2cc, esr 0x92000006
+  [  183.243647] pgd = ffffffc00c068000
+  [  183.246989] [0000c2cc] *pgd=000000000d46c003[  183.251065] , *pud=000000000d46c003
+  , *pmd=0000000000000000[  183.256527] 
+  [  183.258003] 
+  [  183.259487] CPU: 0 PID: 2040 Comm: front_camera_ta Tainted: G           O    4.9.0-svn6199 #270
+  [  183.263667] ipz_mot_main[2038]: unhandled level 2 translation fault (11) at 0x00013dc0, esr 0x92000006
+  [  183.263668] pgd = ffffffc00c068000
+  [  183.263671] [00013dc0] *pgd=000000000d46c003
+  [  183.263672] , *pud=000000000d46c003
+  [  183.263673] , *pmd=0000000000000000
+  [  183.263673] 
+  [  183.263673] 
+  [  183.263677] CPU: 1 PID: 2038 Comm: ipz_mot_main Tainted: G           O    4.9.0-svn6199 #270
+  [  183.263678] Hardware name: xlnx,zynqmp (DT)
+  [  183.263680] task: ffffffc00dfef200 task.stack: ffffffc006db0000
+  [  183.263683] PC is at 0x574f70
+  [  183.263685] LR is at 0x574f70
+  [  183.263687] pc : [<0000000000574f70>] lr : [<0000000000574f70>] pstate: 80000000
+  [  183.263688] sp : 0000007fab9fe6d0
+  [  183.263691] x29: 0000007fab9fe6d0 x28: 0000000000000000 
+  [  183.263694] x27: 0000007fab9ff1e0 x26: 0000000000000000 
+  [  183.263696] x25: 0000000000000000 x24: 0000000000000000 
+  [  183.263699] x23: 0000000000a32718 x22: 0000007fab9fe764 
+  [  183.263702] x21: 0000000000a32000 x20: 0000000000a32768 
+  [  183.263705] x19: 0000007fab9fe768 x18: 0000000000000836 
+  [  183.263707] x17: 0000007fb1c81900 x16: 0000000000966d28 
+  [  183.263710] x15: 0000000000000000 x14: 000000000000fc90 
+  [  183.263713] x13: 0000000000000003 x12: 0000000000001680 
+  [  183.263715] x11: 2ce33e6c02ce33e7 x10: 000000000000016d 
+  [  183.263718] x9 : 0000000000000004 x8 : 0000007fab9fe9d0 
+  [  183.263721] x7 : 0000000000000000 x6 : 000000000000003f 
+  [  183.263723] x5 : 0000000000000040 x4 : ffffffffffffffd0 
+  [  183.263726] x3 : 0000000000000010 x2 : 0000000000000000 
+  [  183.263729] x1 : 0000000000000000 x0 : 0000000000013d88 
+  [  183.263729] 
+  [  183.410950] Hardware name: xlnx,zynqmp (DT)
+  [  183.415119] task: ffffffc00df31380 task.stack: ffffffc006db8000
+  [  183.421023] PC is at 0x565408
+  [  183.423971] LR is at 0x565408
+  [  183.426923] pc : [<0000000000565408>] lr : [<0000000000565408>] pstate: 60000000
+  [  183.434308] sp : 0000007fabbfe920
+  [  183.437599] x29: 0000007fabbfe920 x28: 00000000325ed1c0 
+  [  183.442892] x27: 0000007fabbff1e0 x26: 00000000325ed2d0 
+  [  183.448184] x25: 0000007fabbff2a0 x24: 000000000056704c 
+  [  183.453478] x23: 0000007fb230a000 x22: 0000007fe6525e1f 
+  [  183.458773] x21: 0000000000b35be8 x20: 0000000000b35c60 
+  [  183.464068] x19: 0000000000b35be8 x18: 0000000000000836 
+  [  183.469363] x17: 0000007fb1c95ba8 x16: 00000000009677f0 
+  [  183.474658] x15: 0000504d96a00b97 x14: 000aba94b965e04c 
+  [  183.479953] x13: 00000003e8000000 x12: 0000000000000018 
+  [  183.485247] x11: 000000000002d3ae x10: 00000000fbff7c9a 
+  [  183.490542] x9 : 003b9aca00000000 x8 : 0000000000a28000 
+  [  183.495837] x7 : 000000000000eb6c x6 : 0000000000000000 
+  [  183.501132] x5 : 0000000000001040 x4 : 0000000000001040 
+  [  183.506427] x3 : 0000007fabbfe91f x2 : 0000000000000000 
+  [  183.511721] x1 : 0000000000000000 x0 : 000000000000c2a8 
+  [  183.517016] 
+  [  183.562929] release 485  ..
+  #+END_QUOTE
+- [ ] 定位
+  1) [ ] 可能是start_getty出错，删除start_getty后，遇到错误时的打印如下，可以看出有脚本在一直调用start_getty（具体是哪个脚本在调用待确认）
+  #+BEGIN_QUOTE
+  *** Error in `-sh': free(): invalid pointer: 0x00000000040a7200 */bin/start_getty: line [  215.921748] release 485  ..
+  9:  1878 Aborted                 /sbin/getty -L $1 $2 -n -l /usr/sbin/autologin
+  INIT: cannot execute "/bin/start_getty"
+  INIT: cannot execute "/bin/start_getty"
+  INIT: Id "PS0" respawning too fast: disabled for 5 minutes 
+  #+END_QUOTE
+  2) [ ] 可能app重复初始化机芯库导致（frontpara_task_common.c --> front_camera_task），待确认
+- [ ] 方案
+  1) [ ] 关闭app中跟重启有关的全部操作
+  2) [ ] 关闭app中跟机芯库初始化有关的全部操作
+*** [2/2] 08
+- 现象
+  #+BEGIN_QUOTE
+  *** Warning - bad check sum, idx = 0!
+        magic: 0xffffffff 0xffffffff
+        check sum: 0xffffffff 0x00000000
+  #+END_QUOTE
+- [X] 定位
+  1) [X] flash牌子不一样造成的
+- [X] 方案
+  1) [X] 更新uboot
+*** [1/2] 09
+- 现象
+  #+BEGIN_QUOTE
+  set zoom pin input failure
+  get zoom pi state failure 
+  set focus pin input failure
+  get focus pi state failure
+  ioctl AN41908A_VD_NOTIFY error!
+  hal_vd_notify_init error!,ret = -1
+  [IPJXLIB][irqhandlerThread:419]hal_vd_notify_init finish, ret=-1
+  #+END_QUOTE
+  #+BEGIN_QUOTE
+  ./hikdsp: symbol lookup error: /lib/libzoomcam.so: undefined symbol: ClearLensPI
+  #+END_QUOTE
+- [X] 定位
+  1) [X] 不是没有vd中断or机芯库的问题
+  2) [X] 对比文件
+     /cramfs, /tmp, /home, app打包生成的release文件夹, 机芯库提供给dsp的so
+     只有home下的libzoomcam.so跟别的不一样（hex值很多是0x00和0xff）
+     #+BEGIN_QUOTE
+     mount
+     rootfs on / type rootfs (rw,size=111276k,nr_inodes=27819)
+     proc on /proc type proc (rw,relatime)
+     sysfs on /sys type sysfs (rw,relatime)
+     debugfs on /sys/kernel/debug type debugfs (rw,relatime)
+     devtmpfs on /dev type devtmpfs (rw,relatime,size=111276k,nr_inodes=27819,mode=755)
+     tmpfs on /run type tmpfs (rw,nosuid,nodev,mode=755)
+     tmpfs on /var/volatile type tmpfs (rw,relatime)
+     devpts on /dev/pts type devpts (rw,relatime,gid=5,mode=620,ptmxmode=000)
+     /dev/mtdblock7 on /cramfs type cramfs (ro,relatime)
+     #+END_QUOTE
+     表示/home是在内存中的，跟文件系统无关，具体是存放在哪里的？什么操作能修改？
+     现在检查，出各种错误，都是文件不一样造成
+     用mnt挂载的方式（把release目录下的文件拷贝到/tmp下），也不正常（能正常运行，但是对比文件，发现有区别）
+     脚本分两部执行：第一步tar.sh，文件一致；第二步run.sh，运行出错，文件不一致
+- [ ] 方案
+  1) [ ] 
+
+** app
+*** [1/2] 01
+- 现象
+  写xml后进程崩溃（会导致菜单数据无法保存）
+  #+BEGIN_QUOTE
+  Unable to find first <MESSAGE> element in XML tree!
+  Unable tx20: 0000000000423e0c o find first <DEVICE_PARA> element in XML tree! 
+  #+END_QUOTE
+- [X] 定位
+  1) [X] src\suye\medl_menu_localoutput.c --> medl_uni_dev_cfg_set_capturemode("3840X2160@50");
+- [ ] 方案
+*** [0/2] 02
+- 现象
+  不支持4k相关输出分辨率，且切换分辨率到4k后菜单会消失（彻底无输出）
+- [-] 定位
+  1) [X] regtool写相应寄存器（0xa0004000）发现也没用，应该是fpga不支持。但是不支持4k出图应该不会影响菜单
+  2) [ ] 另一台机子正常4kp60&4kp30（N制）正常，跟fpga确认要支持4kp50&4kp25（P制）需要写相应的寄存器来启动ddr
+- [-] 方案
+  1) [X] fpga在下个版本会自己启动ddr，无需修改
+  2) [ ] 出问题的机子需要fpga确认
+*** [2/2] 03
+- 现象
+  跑2小时以上遇到vd中断（两次/proc/interrupt显示中断GICv2 125 Edge      amba:rq124-pl@A0000000的值一样）消失，用户态报错select timeout, will continue 
+- [X] 定位
+  1) [X] 是不是fpga的原因造成的（vd中断有没有出，还是出来了但没有送到内核）
+  2) [X] 如果是fpga造成的，那么为什么不到之前所说的4个小时；如果不是fpga造成的，那么接下来要找bsp查原因
+  3) [X] 查明原因是fpga那边的问题，因为没有license，mipi跑到一定中断数（450000次左右）就会停止，之前fpga说能跑4小时是低帧率下测试的（4kp30），而现在2小时是在1080p60下跑的
+- [X] 方案
+  1) [X] 不是问题，到时候生产的时候会有license
+*** [1/2] 04
+- 现象
+  #+BEGIN_QUOTE
+  [11-05 00:04:15][pid:0][SENSOR][ERROR]ipzoom cam head version not matched!!!
+  [dsp.c:SendCmdToDsp:433] param=0. <add-lgy>
+  [dsp][SYS]get host cmd semaphorePend
+  [host.c:hostCmd_thread_func:193] param=0. <add-lgy>
+  [dsp][SYS][HostSetVoParam:367] RESULOTION=2, ROLL_MODE=0. <add-lgy>
+  [dsp][SYS][HostSetVoParam:385] failed with 0xffffffff!
+  <unix_bus_manager> L351 ###zqs 111, select FD_ISSET unix_bus_table[1].fd_in_daemon: 5
+  This is database process,  table_name = 0,load_type = 0x70027
+  channel_no = 0, sensor_no = 0, smd_type = 0, scene_no = -1
+  SQL error:21, (null)
+  [11-05 00:04:15][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  SQL error:21, (null)
+  [11-05 00:04:16][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  SQL error:21, (null)
+  [11-05 00:04:17][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  SQL error:21, (null)
+  [11-05 00:04:18][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  SQL error:21, (null)
+  [11-05 00:04:19][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  SQL error:21, (null)
+  [11-05 00:04:20][pid:1996][DATABASE][ERROR][main/dbutil.c 1140][db_begin_exclusive]BEGIN exclusive failed(21)...
+  [11-05 00:04:21][pid:1996][DATABASE][ERROR][main/dbshell.c 34145][save_front_param]try_db_begin_exclusive failed
+  <unix_bus_manager> L351 ###zqs 111, select FD_ISSET unix_bus_table[7].fd_in_daemon: 4
+  [11-05 00:04:21][pid:0][DATABASE][ERROR][database/Db_uni_process.c 62][db_send_data_to_database]--db_send_data_to_database[0x70027]---ret_val[-1]
+  [11-05 00:04:21][pid:0][UNI_IF][ERROR]save_front_param SPLIT_DB_INTERFACE error 
+  UniNetIF_SetFrontParam error! -3
+  \*** Error in `-sh': malloc(): memory corruption (fast): 0x0000000/bin/start_getty: line 9:  1880 Segmentation fault      /sbin/getty -L $1 $2 -n -l /usr/sbin/autologin
+  [  171.843016] release 485  ..
+  Password:  
+  #+END_QUOTE
+  #+BEGIN_QUOTE
+  [  118.932617] daemon_unix_bus[1997]: unhandled level 2 translation fault (11) at 0x00000000, esr 0x82000006
+  [  118.942130] pgd = ffffffc07d96c000
+  [  118.945501] [00000000] *pgd=000000000d1f6003[  118.949567] , *pud=000000000d1f6003
+  , *pmd=0000000000000000[  118.955039] 
+  [  118.956507] 
+  [  118.957988] CPU: 1 PID: 1997 Comm: daemon_unix_bus Tainted: G           O    4.9.0-svn6199 #270
+  [  118.966691] Hardware name: xlnx,zynqmp (DT)
+  [  118.970839] task: ffffffc00dfd9100 task.stack: ffffffc00c2f4000
+  [  118.976746] PC is at 0x0
+  [  118.979258] LR is at 0x0
+  [  118.981767] pc : [<0000000000000000>] lr : [<0000000000000000>] pstate: 80000000
+  [  118.989158] sp : 0000007fb1313920
+  [  118.992448] x29: 0000000000000000 x28: 0000000000000000 
+  [  118.997736] x27: 0000007fb1314200 x26: 0000000000000000 
+  [  119.003031] x25: 0000007fb13142c0 x24: 0000000000402694 
+  [  119.008327] x23: 0000007fb16ae000 x22: 0000007fb15137bf 
+  [  119.013621] x21: 0000000000000000 x20: 0000000000000000 
+  [  119.018926] x19: 0000000000000000 x18: 0000000000000836 
+  [  119.024211] x17: 0000007fb15d3828 x16: 0000000000413ab8 
+  [  119.029506] x15: 0000000000000000 x14: 0000000000000015 
+  [  119.034800] x13: 0000000000000003 x12: 0101010101010101 
+  [  119.040096] x11: 2ce33e6c02ce33e7 x10: 000000000000016d 
+  [  119.045390] x9 : ffffffffffffffe8 x8 : 0000000000000048 
+  [  119.050685] x7 : 0000000000000000 x6 : 0000007fb13138cc 
+  [  119.055981] x5 : 0000007fb1314308 x4 : 0000007fb1314200 
+  [  119.061275] x3 : 0000000000000002 x2 : 0000000000000000 
+  [  119.066569] x1 : 0000000000000000 x0 : 0000000000000000 
+  
+  [  142.883000] THREAD_AUTO_IRI[2065]: unhandled level 2 translation fault (11) at 0x00000008, esr 0x92000006
+  [  142.892512] pgd = ffffffc00d3a6000
+  [  142.895878] [00000008] *pgd=000000000c01e003[  142.899949] , *pud=000000000c01e003
+  , *pmd=0000000000000000[  142.905409] 
+  [  142.906895] 
+  [  142.908373] CPU: 1 PID: 2065 Comm: THREAD_AUTO_IRI Tainted: G           O    4.9.0-svn6199 #270
+  [  142.917068] Hardware name: xlnx,zynqmp (DT)
+  [  142.921222] task: ffffffc07d97e300 task.stack: ffffffc006cbc000
+  [  142.927124] PC is at 0x7f8a8fa6d0
+  [  142.930421] LR is at 0x7f8a8f91a0
+  [  142.933719] pc : [<0000007f8a8fa6d0>] lr : [<0000007f8a8f91a0>] pstate: a0000000
+  [  142.941108] sp : 0000007f1d7fda90
+  [  142.944394] x29: 0000007f1d7fda90 x28: 000000000000001a 
+  [  142.949681] x27: 0000007f1d7fe6f0 x26: 0000000000000000 
+  [  142.954980] x25: 0000007f1d7fe210 x24: 0000000000000000 
+  [  142.960271] x23: 0000007f1d7fe660 x22: 0000000000000000 
+  [  142.965565] x21: 0000000000000000 x20: 0000007f1d7fdd70 
+  [  142.970864] x19: 0000007f1d7fe210 x18: 0000000000000836 
+  [  142.976156] x17: 0000007f8a91b268 x16: 0000007f8ac5d818 
+  [  142.981450] x15: 0000000000000000 x14: 0000000000000015 
+  [  142.986747] x13: 0000000000000003 x12: 0101010101010101 
+  [  142.992042] x11: 2ce33e6c02ce33e7 x10: 000000000000016d 
+  [  142.997335] x9 : ffffffffffffffe8 x8 : fefefefefefefeff 
+  [  143.002629] x7 : 0000000000000046 x6 : 0000007f1d7fe1b0 
+  [  143.007924] x5 : 0000007f1d7ff8f0 x4 : 0000000000000010 
+  [  143.013219] x3 : 0000007f1d7fdd50 x2 : 0000007f1d7fdd70 
+  [  143.018514] x1 : 0000000000000000 x0 : 0000000000000000 
+  [  143.023809] 
+  [  152.484651] start_getty[2072]: unhandled level 2 translation fault (11) at 0x00000014, esr 0x92000006
+  [  152.493814] pgd = ffffffc00d763000
+  [  152.497179] [00000014] *pgd=000000000c229003[  152.501253] , *pud=000000000c229003
+  , *pmd=0000000000000000[  152.506715] 
+  [  152.508198] 
+  [  152.509673] CPU: 1 PID: 2072 Comm: start_getty Tainted: G           O    4.9.0-svn6199 #270
+  [  152.518020] Hardware name: xlnx,zynqmp (DT)
+  [  152.522176] task: ffffffc00d132c00 task.stack: ffffffc006d84000
+  [  152.528083] PC is at 0x444b28
+  [  152.531029] LR is at 0x444d14
+  [  152.533977] pc : [<0000000000444b28>] lr : [<0000000000444d14>] pstate: 00000000
+  [  152.541366] sp : 0000007fc7d72020
+  [  152.544659] x29: 0000007fc7d72020 x28: 0000000000000819 
+  [  152.549944] x27: 0000000000000000 x26: 00000000376d5390 
+  [  152.555239] x25: 00000000004e5198 x24: 000000000047ef10 
+  [  152.560533] x23: 00000000004e5000 x22: 00000000004e4098 
+  [  152.565828] x21: 00000000004daf78 x20: 00000000004e7000 
+  [  152.571123] x19: 00000000004e5000 x18: 0000000000040900 
+  [  152.576419] x17: 00000000004da858 x16: 0000007f9e9a2e08 
+  [  152.581713] x15: 0000000000000658 x14: 00000000376d56f0 
+  [  152.587008] x13: 0000000000000000 x12: 0000000000438428 
+  [  152.592303] x11: 0000000000000020 x10: 0101010101010101 
+  [  152.597597] x9 : 0000000000000007 x8 : 00000000376d5820 
+  [  152.602897] x7 : 00000000004e4000 x6 : 0000000000000008 
+  [  152.608187] x5 : 0000000000000000 x4 : 0000000000000000 
+  [  152.613482] x3 : 00000000ffffffff x2 : 0000000000000001 
+  [  152.618776] x1 : 0000000000000000 x0 : 0000000000000000 
+  #+END_QUOTE
+- [X] 定位
+  1) [X] 同问题xilinx-07
+- [ ] 方案
+*** [2/2] 05
+- 现象
+  打印等级为ERR以下的打印不会输出
+- [X] 定位
+  1) [X] #define DEFAULT_DEBUG_LEVEL RT_ERROR控制默认打印等级
+  2) [X] dev_debug.c --> g_allmod_attr_info可以单独控制各模块
+- [X] 方案
+  1) [X] 修改宏
+*** [1/2] 06
+- 现象
+  #+BEGIN_QUOTE
+  [  650.402434] ipc_backup_cfg[2028]: unhandled level 2 translation fault (11) at 0x00000008, esr 0x92000006
+  [  650.414936] pgd = ffffffc00d54a000
+  [  650.418293] [00000008] *pgd=0000000009732003[  650.422377] , *pud=0000000009732003
+  , *pmd=0000000000000000[  650.427839] 
+  [  650.429321] 
+  [  650.430811] CPU: 0 PID: 2028 Comm: ipc_backup_cfg Tainted: G           O    4.9.0-svn6226 #272
+  [  650.439396] Hardware name: xlnx,zynqmp (DT)
+  [  650.443562] task: ffffffc00d4c7100 task.stack: ffffffc00c3a4000
+  [  650.449463] PC is at 0x7fa0ad8bc4
+  [  650.452760] LR is at 0x7fa0adf430
+  [  650.456056] pc : [<0000007fa0ad8bc4>] lr : [<0000007fa0adf430>] pstate: 60000000
+  [  650.463443] sp : 0000007f9bdfe4d0
+  [  650.466728] x29: 0000007f9bdfe4d0 x28: 0000000000000002 
+  [  650.472019] x27: 0000000000000167 x26: 000000000000017c 
+  [  650.477314] x25: 0000000000000000 x24: 0000000015f966e0 
+  [  650.482609] x23: 0000000000000000 x22: 0000000015fa6688 
+  [  650.487904] x21: 0000000000000000 x20: 0000000015f96408 
+  [  650.493200] x19: 0000007f940008c8 x18: 00000000e94739bb 
+  [  650.498494] x17: 0000007fa0adf3ec x16: 0000007fa0a88658 
+  [  650.503789] x15: 00000000000000ea x14: 0000000000000000 
+  [  650.509083] x13: 0000000000000000 x12: 0000000000000000 
+  [  650.514379] x11: 0000000000000040 x10: 0101010101010101 
+  [  650.519673] x9 : 0000007f9bdfe5f0 x8 : 315f6766635f7463 
+  [  650.524968] x7 : 657465645f636966 x6 : 0000007fa0a70fa0 
+  [  650.530263] x5 : 000000000000017d x4 : 0000000000000000 
+  [  650.535559] x3 : 0000000000000000 x2 : 0000007fa0af2000 
+  [  650.540852] x1 : 0000000000000030 x0 : 0000000000000000 
+  #+END_QUOTE
+- [X] 定位
+  1) [X] 同xilinx-07
+- [ ] 方案
+  1) [ ] 
+*** [2/2] 07
+- 现象
+  #+BEGIN_QUOTE
+  [12-20 15:31:38][pid:0][PTZ][ERROR][ipzMenuLib_UniIf_func_call] ipzMenuLib_UniIf_func_call ERROR NULL!
+  #+END_QUOTE
+- [X] 定位
+  1) [X] #define IPZOOM_MENU_LIB_PATH  ("/lib/libipzoomMenu.so") 找不到 libipzoomMenu.so
+- [X] 方案
+  1) [X] 打包和启动脚本内增加相应的库
+
+*** [1/2] 08
+- 现象
+  #+BEGIN_QUOTE
+  [   94.574508] 2003_service_da[2079]: undefined instruction: pc=00000000004bbef8
+  [   94.584639] Code: 00000000 00000000 00000000 00000000 (00000000) 
+  #+END_QUOTE
+- [X] 定位
+  1) [X] fps_ipc_unix\src\ipc_unix.c --> ipc_unix_init() --> 3个pthreadSpawn
+  2) [ ] 具体原因未知，踩pc是真的神奇
+- [ ] 方案
+  1) [ ] 打包和启动脚本内增加相应的库
+
+

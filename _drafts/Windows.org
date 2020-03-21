@@ -1,0 +1,354 @@
+---
+layout: post
+title: "windows-10-on!"
+categories: windows
+tags: win10
+author: lgY
+---
+
+* content
+{:toc}
+
+# 准备
+
+## 理论知识
+
+### 启动概念：
+
+<http://www.wowotech.net/linux_kenrel/UEFI.html>
+<https://blog.csdn.net/wojiaodaier/article/details/71885560>
+<https://blog.csdn.net/JIA_GUOQIANG/article/details/53149314>
+<https://www.quora.com/What-is-the-difference-between-the-BIOS-and-a-boot-loader>
+<http://blog.sina.com.cn/s/blog_56799b500102vnop.html>
+
+TODO：启动顺序图
+
+
+### pe：
+
+<https://sspai.com/post/41960>
+<http://blog.sina.cn/dpool/blog/s/blog_a0c06a350102wc0n.html>
+
+
+### 无盘系统：
+
+<https://bbs.txwb.com/thread-1896414-1.html>
+<http://blog.51cto.com/3387405/1043616>
+<https://www.zhihu.com/question/28887635>
+
+
+### 笔记本（选购）：主要看模具、主板（散热，升级），其次CPU、显卡（性能），最后才是内存、硬盘（添头）
+
+
+## 制作U盘系统：
+
+<http://wuyou.net/forum.php?mod=viewthread&tid=388634>
+
+> <http://wuyou.net/forum.php?mod=viewthread&tid=381242>
+
+pe：aomei-pe
+
+TODO：3个doc整合，写成org文件
+
+
+### 注意：
+
+-   diskgenius每次改变分区就要保存一下，否则会报错
+-   diskgenius分配盘符只能分配一个，如果给NTFS也分配盘符会报错，不分配就好
+-   要将menu.lst拷贝至根目录
+
+
+# 整体构架？分区（名字用demon的名字）：
+
+目标：文件少（wim，vhd），可移植（sysperp），易备份（wim），占用空间少（wim），可以随便折腾（wim，vhd）
+经过数次折腾（做好系统进不去，差分文件损坏，&#x2026;）最终选用的是wimboot+vhd的方案
+
+-   4k对齐（可以通过diskgenius查看是否对齐，win10磁盘管理分出来的驱动都是4k对齐的）:
+
+<https://www.thomas-krenn.com/en/wiki/Partition_Alignment>
+<https://www.i3geek.com/archives/1275>
+<https://blog.csdn.net/haiross/article/details/38843201>
+
+-   diskpart：
+
+<https://jingyan.baidu.com/article/08b6a591c82df414a8092224.html>
+<https://blog.csdn.net/u012757487/article/details/53181425>
+
+
+## BOOT（100mb，不分配盘符，用bootice隐藏）
+
+
+### bcd文件：
+
+<https://blog.csdn.net/wolfsun3/article/details/48828929>
+
+
+## PE-S（20gb-18gvhdx+工具&#x2013;bootice，aida，dism++，&#x2026;）
+
+1.  U盘启动
+2.  参照U盘系统，将硬盘内的系统分区，拷贝vhdx
+3.  步骤变更，U盘系统制作时选择主引导为grub4dos，但是硬盘上没法选择；将此步骤改为分区引导（只需要选择FAT32的分区为grub4dos即可），其余步骤依旧
+
+
+## SYS&SOFT-R（wimboot+vhd）
+
+
+### vhdx+wimboot（安装ltsb2016 N版本，神州网信版本待考察）
+
+1.  wimboot（3个index）：install.wim+优化（补丁等）+驱动装好，软件装好单独一个文件
+
+    <http://bbs.pcbeta.com/viewthread-1504823-1-1.html>
+    <http://bbs.pcbeta.com/viewthread-1495215-1-1.html>
+    <http://wuyou.net/forum.php?mod=viewthread&tid=368146>
+    <http://bbs.pcbeta.com/viewthread-1690989-1-3.html>
+    
+    1.  wimboot+vhd(优势&#x2013;体积小（与纯vhd和差分vhd）、备份vhd就能解决驱动无法备份的问题？？，劣势&#x2013;速度略慢，增量&差分)：
+    
+        <http://wuyou.net/forum.php?mod=viewthread&tid=403822&extra=page%3D1>
+        cgi：<http://www.zdfans.com/6431.html>
+        wimboot：<http://chenall.net/post/windows7_wimboot/>
+        是否支持wimboot：<http://bbs.pcbeta.com/viewthread-1511770-1-1.html>
+        
+        TODO：(测试)
+        install.wim+vhdx指针（install.wim）内增加test1.txt并制作wimboot1.wim（在install.wim内）+vhdx指针（wimboot1.swm）内增加test2.txt并制作wimboot2.swm（在install.wim内）
+        
+        1.  看能否用指针vhdx启动wimboot2.swm；2. 看两个txt内容是否正确
+        
+        vhdx（对应驱动装好的index）：动态（50gb）or固定（30gb），看速度；指针vhdx能否差分便于备份？
+
+2.  ltsb2016安装踩到的坑
+
+    1.  无法安装积累更新：
+    
+        必须先安装堆栈服务：<https://support.microsoft.com/zh-cn/help/4338814/windows-10-update-kb4338814>
+        
+        > <http://bbs.pcbeta.com/forum.php?mod=viewthread&tid=1791096&highlight>=
+        > <http://bbs.pcbeta.com/viewthread-1760603-1-1.html>
+        > <https://www.catalog.update.microsoft.com/Search.aspx?q=1607>
+    
+    2.  无法用mtp（单纯安装wpdmtp.inf不能解决问题&#x2013;会出现设备管理器能识别但无法打开盘符的问题？？？；google usb driver能解决问题么&#x2013;adb不是mtp；不建议安装media-feature-pack）：
+    
+        -   adb（能解决copy的问题&#x2013; adb push -p d:/download/UniversalAdbDriverSetup.msi /storage/self/primary/<sub>bak</sub>，但mtp仍然不行？）：
+        
+        <https://github.com/koush/UniversalAdbDriver>
+        <https://blog.csdn.net/signjing/article/details/51835017>
+        <https://github.com/labo89/adbGUI>
+        wifi热点 adb：<https://blog.csdn.net/guojinpeng1/article/details/50722036>
+        
+        -   mtp（dism装.mum文件）：
+        
+        <https://www.tenforums.com/drivers-hardware/72798-media-transfer-protocol-device-mtp-device-support-windows-10-n.html>
+        
+        > <https://forums.mydigitallife.net/threads/windows-10-enterprise-2016-ltsb-n-media-feature-pack.70784/>
+        > <https://www.zhihu.com/question/49805367>
+        > <https://support.microsoft.com/en-us/help/3145500/media-feature-pack-list-for-windows-n-editions>
+        > mtp porting kit：<https://www.microsoft.com/en-us/download/details.aspx?id=19153>
+        
+        -   adb和mtp互不影响：
+        
+        <https://android.stackexchange.com/questions/96914/using-adb-without-mtp-support>
+    
+    3.  小破船（k690e g6d2）vga驱动问题：
+    
+        会报该机器不满足最低要求的错误，查看setupif文件发现是未加入8代U的判断（readme里实际是支持的，安装好后也没问题）；如果不安装，则无法调节分辨率（默认1920×1080），但分辨率大于屏幕分辨率，会导致卡顿严重（特别是玩游戏时）；安装好后将分辨率调节至1366×768（与15.6寸的分辨率匹配），这样便不会产生卡顿了
+    
+    4.  vhd无法进入桌面（最终确定为盘符问题）
+    
+        -   vhd显卡驱动问题（安全模式能启动，但卸载显卡驱动仍然无法在正常模式下进入系统）：
+        
+        <http://wuyou.net/forum.php?mod=viewthread&tid=326600>
+        安装完显卡后重启时->按F8（这是win7，可以按F8进入高级启动选项，win10可以在bootice设置进入safeboot）->选择以640\*480显示启动->成功进入桌面后再设定高解像度显示
+        win8vhd装显卡驱动：<http://bbs.zol.com.cn/nbbbs/d160_162854.html>
+        dism++驱动导出：<http://tieba.baidu.com/p/3662213088>
+        显卡驱动卸载：<https://zhuanlan.zhihu.com/p/29832338>
+        
+        -   sysperp（未测试）：<https://blog.csdn.net/AloneSword/article/details/7268986>
+        
+        需要windows自带的bcd存在才能进行
+        之前无法登录应该是未进行sysprep的问题，因为很多注册表信息用的是绝对路径（c:\\&#x2026;）而不是相对路径或者参数（%system）导致的
+        
+        -   看看能不能更改启动盘符
+        
+        按下面的方法改了启动盘符成功进入系统（而且显卡驱动都没卸载，仅仅修改了盘符；之前因为safeboot能进而normal不行以为是显卡驱动或者账号激活之类的问题，但其实就是盘符问题，毕竟是在生成wim文件的电脑上进行wimboot启动）
+        <http://blog.sina.cn/dpool/blog/s/blog_56799b500102vnf3.html>
+        
+        -   若移动过wim文件位置，则需要重新apply至vhd（或者修改注册表中wimboot相关项，没找到方法…），否则会报0xc000025的错误
+    
+    5.  机械硬盘启动速度慢：无解，硬伤，考虑加入ramdisk
+    
+        尽量放在前面分区内：<http://www.cnblogs.com/TianFang/p/4248227.html>
+
+
+### 差分vhdx （弃用方案，原因：太吃空间，差分vhdx也不怎么）
+
+1.  vhdx安装并激活server 2016（总管理，纯净，只升级和安装基本驱动）
+
+    1） 先尝试vhdx（母盘非差分）激活2016\*2（需要先把ltsb的vhdx弄好，以免出问题，移动硬盘拷贝），若不行则hdd上装2016\*2然后激活，差分的vhdx大小不固定
+    server 2016：<https://imagine.microsoft.com/zh-cn/catalog/product/524>
+    key：QTGFW-NKCGY-G8PHM-3HTWV-DRT34
+    结果：win server仍然无法激活，win10可以在vhdx内激活（但不能在差分vhdx内激活）
+    
+    1.  ssd.System-ltsb&server?(可以现装，看看是不是数字，不是的话还是做个vhdx u盘建个存储池然后通过uefi+grub4dos?启动多系统－－可不可以通过Linux?)；
+    
+    server2016：
+    <https://www.jianshu.com/p/09d8fc782e9e>
+    <http://bbs.pcbeta.com/forum.php?mod=viewthread&tid=1784159>
+    <https://blog.csdn.net/meigang2012/article/category/7119268>
+    <https://zhuanlan.zhihu.com/p/23302415>
+    <https://github.com/m2nlight/WindowsServerToWindowsDesktop>
+    <https://bbs.aliyun.com/read/273416.html>
+    <https://blogs.technet.microsoft.com/technet_taiwan/2016/01/05/compute-windows-server-2016-hyper-v/>
+    <https://blogs.technet.microsoft.com/technet_taiwan/2016/02/23/storage-windows-server-2016-storage-qos/>
+    以server2016为核心的家庭数据中心：<https://post.smzdm.com/p/635872/>
+    <http://blog.leijun.me/2017/02/15/KVM%E5%AE%89%E8%A3%85windows%20server%202016%E5%B9%B6%E5%90%AF%E7%94%A8WSUS%E6%9C%8D%E5%8A%A1/>
+    远程桌面服务配置和授权激活：<https://blog.csdn.net/h8178/article/details/78354248>
+
+2.  vhdx安装ltsb 2016（实际使用，vhdx0-父，未安装）
+
+    1.  在server2016的基础上，拷贝vhdx至特定位置，bootice设置
+    2.  diff vhdx（差分vhdx），要跟parent在同一个目录下
+    3.  bootice添加引导，分别至父vhdx（pe）和子vhdx（真正使用），子vhdx不要勾选测试模式和winpe，关闭影子系统，即可正常使用
+    
+    TODO：
+    如何激活，子vhdx的大小调整（要不要一开始就最大？）
+    <https://bbs.luobotou.org/thread-7995-1-1.html>
+    
+    注意：
+    
+    1.  差分vhdx要跟父vhdx在一个目录，子vhdx不要勾选测试模式和winpe
+    2.  wim解压至vhdx，用bootice引导，进入之后遇到报错（oobe）
+    
+    <https://blog.csdn.net/gogcc/article/details/50844641>
+    <https://answers.microsoft.com/zh-hans/windows/forum/windows8_1-windows_install-wininstalls/vhdx%e5%ae%89%e8%a3%8581%e5%87%ba%e7%8e%b0windows/0929ff38-9d92-407c-a1eb-f2169ee6ac18>
+    
+    vhdx启动：<https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/boot-to-vhd--native-boot--add-a-virtual-hard-disk-to-the-boot-menu>
+    <http://bbs.pcbeta.com/viewthread-1099053-1-1.html>
+    <http://bbs.pcbeta.com/viewthread-1577401-1-1.html>
+    <https://www.zhihu.com/question/61091614>
+    <http://www.cnblogs.com/cxchanpin/p/7055542.html>
+    kms：<https://03k.org/>
+    esd：<https://www.iruanmi.com/everything-about-windows-8-esd-image-files/>
+    <http://tieba.baidu.com/p/3366067581>
+    <http://bbs.ithome.com/thread-643237-1-1.html>
+    LTSB／LTSC序列：<https://www.kechuang.org/t/82260>
+    win10 LTSB 2016 geek精简：<http://bbs.pcbeta.com/viewthread-1774229-1-1.html>
+    ltsb优化：<https://bbs.kafan.cn/thread-2121575-1-1.html>
+    avast+comodo：<https://forum.avast.com/index.php?topic=196929.0>
+    <https://bbs.kafan.cn/thread-2100263-1-1.html>
+    avast 离线安装包：把在线安装包地址中的online改成offline
+    数字权利激活：<http://bbs.pcbeta.com/viewthread-1786685-1-2.html>
+    win10 下载器：<http://bbs.pcbeta.com/viewthread-1784485-1-3.html>
+    安装语言包要先将默认语言改成非要安装的语言并重启后再进行安装，否则有可能安装失败
+
+
+## 存储池
+
+vhdx存储池：<https://bbs.saraba1st.com/2b/thread-1296624-1-1.html>
+<https://www.xieyidian.com/4413>
+<https://www.v2ex.com/t/387385>
+虚拟化：<http://liuqunying.blog.51cto.com/3984207/1385861/>
+
+ssd.缓存？shared data?；
+存储池是否操作系统无关？
+<http://codefine.site/1222.html>
+<http://www.codeclip.com/313.html>
+<http://www.cnblogs.com/mslagee/articles/6136334.html>
+
+注意：
+留10G+SSD为未分区，留给存储池用
+
+
+## 注意：
+
+可以隐藏vhdx和boot文件所在盘符，仍能正常使用，并防止误操作
+
+
+# 优化&美化（vhdx1-子-安装，按用户）
+
+基于用户（注册表，win+r runas，cmdkey，mklink等）
+
+
+## 系统优化
+
+1.  删除休眠文件：
+
+<https://blog.csdn.net/qq_35733535/article/details/78968394>
+
+1.  direct<sub>ehanced</sub>
+2.  字体：字体安装能否用硬链接（/H）
+3.  emacs取代notepad，vscode和editplus
+4.  powershell和cmd
+
+<https://coolcode.org/2018/03/16/how-to-make-your-powershell-beautiful/>
+<https://blog.csdn.net/itanders/article/details/75305163>
+
+    # chcp 65001
+    colortool -b ayu
+    Import-Module DirColors
+    Update-DirColors C:\Users\liuguangyuan5\Documents\WindowsPowerShell\dir_colors\dircolors.ansi-dark
+    Import-Module posh-git
+    if (!(Get-SshAgent)) {
+        Start-SshAgent
+    }
+    Import-Module oh-my-posh
+    Set-Theme PowerLine
+    Screenfetch
+
+1.  shift+f10转移文件夹：
+
+要转移的文件夹（user+font+SoftwareDistribution+Temp+Installer）：<https://bbs.saraba1st.com/2b/thread-933858-1-1.html>
+<https://blog.csdn.net/CrowNAir/article/details/78533051>
+<https://wenku.baidu.com/view/ae7bb4154431b90d6c85c760.html>
+<https://www.tenforums.com/tutorials/1964-move-users-folder-location-windows-10-a.html>
+Win10转移用户文件夹：<https://blog.csdn.net/sinat_38799924/article/details/74059037>
+<https://social.technet.microsoft.com/Forums/zh-CN/5fb22bb2-7b01-40a7-a537-568d29904b31/-win-7-8-program-filesdocuments-and-settingsd?forum=window7betacn>
+不能安装字体：直接通过注册表添加即可
+
+> powershell：
+<http://www.powershellmagazine.com/2014/03/17/pstip-reading-file-content-as-a-byte-array/>
+<https://blog.csdn.net/powershell/article/category/324943>
+<https://www.cnblogs.com/fungapapp/archive/2012/05/17/2506201.html>
+<https://windowsreport.com/change-windows-10-default-font/>
+<http://www.windowszj.com/news/20837.html>
+<https://superuser.com/questions/1211023/fontlink-fontlink-systemlink-in-registry-is-not-working-as-expected-in-window>
+mactype（感觉没使用的必要）：
+<https://zhuanlan.zhihu.com/p/22269604>
+<https://bbs.kafan.cn/thread-1394358-1-1.html>
+<https://github.com/Tatsu-syo/noMeiryoUI>
+<https://www.sevenforums.com/tutorials/1175-fonts-change.html?filter>
+Numix theme for Windows，![img](http://static.simpledesktops.com/uploads/desktops/2015/04/30/Solarized-Mountains.png)
+
+
+## 软件（vhdx2-子）
+
+software：免安装+安装至vhdx
+
+baiduPan：<https://github.com/iikira/BaiduPCS-Go>
+7z压缩tar：<https://www.cnblogs.com/jinjiangongzuoshi/p/3778926.html>
+vscode&editplus
+配色方案-安卓（高对比度 solarized ，monokai）：<http://color-themes.com>
+potplayer
+alipay&qq&weixin
+fdm&thunder
+java&daemontools
+cajviewer&office
+sbeam
+
+chrome：
+centbrowser&xx-net
+chrome报错：<https://superuser.com/questions/1208867/chromium-not-loading-any-page-after-moving-user-folder/1208877>
+noCoin：<https://chrome.google.com/webstore/detail/no-coin/gojamcfopckidlocpkbelmpjcgmbgjcl>
+
+
+## linux
+
+debian+xfce
+（vhdx?hyper-v?wsl?docker?）
+
+armlinux
+<https://stackoverflow.com/questions/17138970/is-it-possible-to-emulate-arm-on-windows-8>
+
+考虑用docker
+docker（具体见）：<https://zhuanlan.zhihu.com/p/29486013>
+<https://www.zhihu.com/question/22969309/answer/286142439>
+
