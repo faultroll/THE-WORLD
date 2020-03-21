@@ -1,4 +1,5 @@
 ﻿
+``` org
 ** YOOO
 Lisp Machine：http://cnlox.is-programmer.com/posts/34114.html
 emacs vs vi：https://blog.csdn.net/oyd/article/details/1511128
@@ -187,9 +188,9 @@ https://emacs-china.org/t/topic/2754/74
   http://www.360doc.com/content/12/0531/10/5962017_214925829.shtml
   https://www.zhihu.com/question/276356727
   其他还需要：neotree，文件切换，markdown预览，org mode，project使用等
-  ```
+  #+BEGIN_QUOTE
   A text editor cannot 'understand' your code, but an ide can. Thus, make a text editor to an ide need external tools.
-  ```
+  #+END_QUOTE
 02) 语法高亮
   http://tuhdo.github.io/c-ide.html
   https://blog.csdn.net/sealingdust/article/details/3982192
@@ -354,47 +355,27 @@ https://emacs-china.org/t/topic/2754/74
    关闭自动截断：toggle-text-mode-auto-fill
    font（iosveka+sarasa或ubuntu+youyuan）：http://mpwang.github.io/2019/02/06/productivity/
    .emacs如下：
-   ``` elisp
-   (add-to-list 'load-path "~/dotemacs")
-   (load "init-emacs" 'noerror)
-   (load "init-note" 'noerror)
-   (load "etc/sample/proj" t)
-
-   (custom-set-variables
-   ;; custom-set-variables was added by Custom.
-   ;; If you edit it by hand, you could mess it up, so be careful.
-   ;; Your init file should contain only one such instance.
-   ;; If there is more than one, they won't work right.
-   '(cnfonts-personal-fontnames (quote (("Iosevka SS09") ("Sarasa Mono CL") nil)))
-   '(cnfonts-profiles (quote ("sarasa" "ubuntu")))
-   '(column-number-mode t)
-   '(cua-mode nil)
-   '(ecb-source-path nil t)
-   '(global-display-line-numbers-mode t)
-   '(show-paren-mode t)
-   '(size-indication-mode t)
-   '(tool-bar-mode nil))
-   ```
+      #+BEGIN_SRC lisp
+      (add-to-list 'load-path "~/dotemacs")
+      (load "init-emacs" 'noerror)
+      (load "init-note" 'noerror)
+      (load "etc/sample/proj" t)
+      
+      (custom-set-variables
+      ;; custom-set-variables was added by Custom.
+      ;; If you edit it by hand, you could mess it up, so be careful.
+      ;; Your init file should contain only one such instance.
+      ;; If there is more than one, they won't work right.
+      '(cnfonts-personal-fontnames (quote (("Iosevka SS09") ("Sarasa Mono CL") nil)))
+      '(cnfonts-profiles (quote ("sarasa" "ubuntu")))
+      '(column-number-mode t)
+      '(cua-mode nil)
+      '(ecb-source-path nil t)
+      '(global-display-line-numbers-mode t)
+      '(show-paren-mode t)
+      '(size-indication-mode t)
+      '(tool-bar-mode nil))
+      #+END_SRC
    #+END_QUOTE
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
 

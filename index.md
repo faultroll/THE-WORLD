@@ -4,6 +4,7 @@ layout: home
 permalink: /
 ---
 
-# Welcome
+# Welcome to my world
 
-Bla bla bla bla. Bla bla bla bla bla bla bla bla.
+My world, my existence, my proof.
+
