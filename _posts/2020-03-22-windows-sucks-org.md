@@ -10,7 +10,8 @@
     https://www.quora.com/What-is-the-difference-between-the-BIOS-and-a-boot-loader
     http://blog.sina.com.cn/s/blog_56799b500102vnop.html
 *** pe
-    http://blog.sina.cn/dpool/blog/s/blog_a0c06a350102wc0n.html
+    - Native Boot
+      http://blog.sina.com.cn/s/blog_a0c06a350102wc0n.html
     - aomei
       https://sspai.com/post/41960
 *** 无盘系统
@@ -22,15 +23,18 @@
 ** 制作U盘系统
    http://wuyou.net/forum.php?mod=viewthread&tid=388634
    http://wuyou.net/forum.php?mod=viewthread&tid=381242
-*** 注意
-    - diskgenius每次改变分区就要保存一下，否则会报错
-    - diskgenius分配盘符只能分配一个，如果给NTFS也分配盘符会报错，不分配就好
-    - 要将menu.lst拷贝至根目录
+   - 注意
+     - diskgenius每次改变分区就要保存一下，否则会报错
+     - diskgenius分配盘符只能分配一个，如果给NTFS也分配盘符会报错，不分配就好
 
 * 整体构架
-  分区（命名参考《恶魔书》）
-  目标：文件少（wim，vhd），可移植（sysperp），易备份（wim），占用空间少（wim），可以随便折腾（wim，vhd）
-  经过数次折腾（做好系统进不去，差分文件损坏，...）最终选用的是wimboot+vhd的方案
+  - 目标
+    文件少（wim，vhd），可移植（sysperp），易备份（wim），占用空间少（wim），可以随便折腾（wim，vhd）
+    经过数次折腾（做好系统进不去，差分文件损坏，...）最终选用的是wimboot+vhd的方案
+    分区（命名参考《恶魔书》），制作步骤参考前文无忧论坛的两篇制作U盘系统的文章
+  - 准备
+    ltsb.iso，cgi安装工具，对应补丁（dism++预安装），directx-enhanced
+    .net 3：https://answers.microsoft.com/en-us/insider/forum/insider_wintp-insider_install/how-to-instal-net-framework-35-on-windows-10/450b3ba6-4d19-45ae-840e-78519f36d7a4
   - 4k对齐（可以通过diskgenius查看是否对齐，win10磁盘管理分出来的驱动都是4k对齐的）
     https://www.thomas-krenn.com/en/wiki/Partition_Alignment
     https://www.i3geek.com/archives/1275
@@ -56,16 +60,26 @@
     http://bbs.pcbeta.com/viewthread-1495215-1-1.html
     http://wuyou.net/forum.php?mod=viewthread&tid=368146
     http://bbs.pcbeta.com/viewthread-1690989-1-3.html
+    https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/dn594399(v%3dwin.10)
     - wimboot+vhd
       优势--体积小（与纯vhd和差分vhd）、备份vhd就能解决驱动无法备份的问题，劣势--速度略慢，增量&差分
       http://wuyou.net/forum.php?mod=viewthread&tid=403822&extra=page%3D1
-      cgi：http://www.zdfans.com/6431.html
+      - cgi
+        http://www.zdfans.com/6431.html
+        #+BEGIN_QUOTE
+        用cgi安装重启后，会报错
+        "Windows could not update the computer's boot configuration. Installation cannot proceed."
+        shift+f10，cd oobe，msoobe，设置，重启后会报错
+        "The Computer Restarted unexpectedly or encountered an unexpected error" 
+        按这个链接的解决（shift+f10，HKLocal machine/SYSTEM/SETUP/STATUS/ChildCompletion, and after highliting childcompletion,on the right hand side check for setup.exe. if the value is 1 change it to 3.）
+        https://answers.microsoft.com/en-us/windows/forum/all/error-message-the-computer-restarted-unexpectedly/b770f14d-e345-e011-90b6-1cc1de79d2e2
+        #+END_QUOTE
       wimboot：http://chenall.net/post/windows7_wimboot/
       是否支持wimboot：http://bbs.pcbeta.com/viewthread-1511770-1-1.html
-      TODO：(测试)
+      TODO 测试
       install.wim+vhdx指针（install.wim）内增加test1.txt并制作wimboot1.wim（在install.wim内）+vhdx指针（wimboot1.swm）内增加test2.txt并制作wimboot2.swm（在install.wim内）
-      1. 看能否用指针vhdx启动wimboot2.swm
-      2. 看两个txt内容是否正确
+      - 看能否用指针vhdx启动wimboot2.swm
+      - 看两个txt内容是否正确
       vhdx（对应驱动装好的index）：动态（50gb）or固定（30gb），看速度；指针vhdx能否差分便于备份？
     - ltsb2016安装踩到的坑
       1) 无法安装积累更新
@@ -105,14 +119,33 @@
          - 若移动过wim文件位置，则需要重新apply至vhd（或者修改注册表中wimboot相关项，没找到方法…），否则会报0xc000025的错误
       5) 机械硬盘启动速度慢：无解，硬伤，考虑加入ramdisk
          尽量放在前面分区内：http://www.cnblogs.com/TianFang/p/4248227.html
+    2) 流程
+       #+BEGIN_QUOTE
+       create vdisk file="d:\diffsys\win2016y18.vhdx" parent="d:\systems\win2016.vhdx"
+       POWERCFG /HIBERNATE OFF
+       dism /Capture-Image /ImageFile:e:\ltsb2016.wim /CaptureDir:c:\ /Name:backup2018
+       dism /Get-ImageInfo /ImageFile:e:\ltsb2016.wim /index:1
+       dism /Apply-Image /ImageFile:e:\ltsb2016.wim /Index:1 /ApplyDir:S:\ /WIMBoot
+       // bcdboot S:\windows /l zh-cn
 
+       如果不先sysprep一般化，则会因为很多信息指向C盘导致vhdx起不来，需要修改vhdx启动后的盘符为C
+       1) win+r运行regedit
+       2) 备份HKEY_LOCAL_MACHINE\SYSTEM\MountedDevices为reg
+       3) 挂载指针vhdx
+       4) 选中HKEY_LOCAL_MACHINE，文件-加载配置单元，vhdx盘符:\Windows\System32\config，名字随意
+       5) 修改备份的reg，HKEY_LOCAL_MACHINE\SYSTEM\MountedDevices中的SYSTEM为4步骤中取得名字
+       6) 运行备份的reg，删除MountedDevices中的C盘符相关的一项，并修改（重命名）vhdx盘符为C
+
+       dism /Apply-Image /ImageFile:D:\system\ltsb2016.wim /Index:1 /ApplyDir:F:\ /WIMBoot
+       dism /Capture-Image /ImageFile:c:\systems\wimboot.wim /CaptureDir:e:\ /Name:ltsb2016 /WIMBoot /CheckIntegrity /Verify
+       dism /Apply-Image /ImageFile:c:\systems\wimboot.wim /Index:1 /ApplyDir:F:\ /WIMBoot
+       #+END_QUOTE
 *** 差分vhdx（弃用方案，仅作记录，原因：太吃空间，差分vhdx也不怎么）
     1) vhdx安装并激活server 2016（总管理，纯净，只升级和安装基本驱动）
+       server 2016：https://imagine.microsoft.com/zh-cn/catalog/product/524
        - 先尝试vhdx（母盘非差分）激活2016\*2（需要先把ltsb的vhdx弄好，以免出问题，移动硬盘拷贝），若不行则hdd上装2016\*2然后激活，差分的vhdx大小不固定
-         server 2016：https://imagine.microsoft.com/zh-cn/catalog/product/524
          结果：win server仍然无法激活，win10可以在vhdx内激活（但不能在差分vhdx内激活）
-       - ssd.System-ltsb&server?(可以现装，看看是不是数字，不是的话还是做个vhdx u盘建个存储池然后通过uefi+grub4dos?启动多系统－－可不可以通过Linux?)；
-         server2016：
+       - ssd.System-ltsb&server?（可以现装，看看是不是数字，不是的话还是做个vhdx u盘建个存储池然后通过uefi+grub4dos?启动多系统－－可不可以通过Linux?）
          https://www.jianshu.com/p/09d8fc782e9e
          http://bbs.pcbeta.com/forum.php?mod=viewthread&tid=1784159
          https://blog.csdn.net/meigang2012/article/category/7119268
@@ -125,12 +158,13 @@
          http://blog.leijun.me/2017/02/15/KVM%E5%AE%89%E8%A3%85windows%20server%202016%E5%B9%B6%E5%90%AF%E7%94%A8WSUS%E6%9C%8D%E5%8A%A1/
          远程桌面服务配置和授权激活：https://blog.csdn.net/h8178/article/details/78354248
      
-    2) vhdx安装ltsb 2016（实际使用，vhdx0-父，未安装）
+    2) vhdx安装ltsb 2016
+       vhdx0-父-未安装
+       https://bbs.luobotou.org/thread-7995-1-1.html
        - 在server2016的基础上，拷贝vhdx至特定位置，bootice设置
        - diff vhdx（差分vhdx），要跟parent在同一个目录下
        - bootice添加引导，分别至父vhdx（pe）和子vhdx（真正使用），子vhdx不要勾选测试模式和winpe，关闭影子系统，即可正常使用
-         TODO 如何激活，子vhdx的大小调整（要不要一开始就最大？）
-         https://bbs.luobotou.org/thread-7995-1-1.html
+       TODO 如何激活，子vhdx的大小调整（要不要一开始就最大？）
        - 注意
          - 差分vhdx要跟父vhdx在一个目录，子vhdx不要勾选测试模式和winpe
          - wim解压至vhdx，用bootice引导，进入之后遇到报错（oobe）
@@ -159,8 +193,7 @@
    https://www.xieyidian.com/4413
    https://www.v2ex.com/t/387385
    虚拟化：http://liuqunying.blog.51cto.com/3984207/1385861/
-   ssd.缓存？shared data?；
-   存储池是否操作系统无关？
+   ssd?缓存?shared data?存储池是否操作系统无关?
    http://codefine.site/1222.html
    http://www.codeclip.com/313.html
    http://www.cnblogs.com/mslagee/articles/6136334.html
@@ -170,10 +203,11 @@
    可以隐藏vhdx和boot文件所在盘符，仍能正常使用，并防止误操作
 
 * 优化&美化
-  vhdx1-子-安装，按用户
+  vhdx1-子-安装
   基于用户（注册表，win+r runas，cmdkey，mklink等）
 ** 系统优化
    - 删除休眠文件
+     POWERCFG /HIBERNATE OFF
      https://blog.csdn.net/qq_35733535/article/details/78968394
    - directsubehanced/sub
    - 字体：字体安装能否用硬链接（/H）
@@ -206,8 +240,12 @@
      https://windowsreport.com/change-windows-10-default-font/
      http://www.windowszj.com/news/20837.html
      https://superuser.com/questions/1211023/fontlink-fontlink-systemlink-in-registry-is-not-working-as-expected-in-window
+   - onedrive
+     http://bbs.pcbeta.com/viewthread-1787498-1-3.html
+     http://bbs.pcbeta.com/viewthread-1792673-1-1.html
    - shift+f10转移文件夹
-     要转移的文件夹（user+font+SoftwareDistribution+Temp+Installer）：https://bbs.saraba1st.com/2b/thread-933858-1-1.html
+     user+font+SoftwareDistribution+Temp+Installer
+     https://bbs.saraba1st.com/2b/thread-933858-1-1.html
      https://blog.csdn.net/CrowNAir/article/details/78533051
      https://wenku.baidu.com/view/ae7bb4154431b90d6c85c760.html
      https://www.tenforums.com/tutorials/1964-move-users-folder-location-windows-10-a.html
@@ -217,31 +255,41 @@
    - theme
      Numix theme for Windows
      http://static.simpledesktops.com/uploads/desktops/2015/04/30/Solarized-Mountains.png
-** 软件（vhdx2-子）
-   software：免安装+安装至vhdx
-   baiduPan：https://github.com/iikira/BaiduPCS-Go
-   7z压缩tar：https://www.cnblogs.com/jinjiangongzuoshi/p/3778926.html
-   vscode&editplus
-   配色方案-安卓（高对比度 solarized ，monokai）：http://color-themes.com
-   potplayer
-   alipay&qq&weixin
-   fdm&thunder
-   java&daemontools
-   cajviewer&office
-   sbeam
-   - chrome
-     centbrowser&xx-net
-     chrome报错：https://superuser.com/questions/1208867/chromium-not-loading-any-page-after-moving-user-folder/1208877
-     noCoin：https://chrome.google.com/webstore/detail/no-coin/gojamcfopckidlocpkbelmpjcgmbgjcl
-** linux
-   debian+xfce
-   （vhdx?hyper-v?wsl?docker?）
-   armlinux
-   https://stackoverflow.com/questions/17138970/is-it-possible-to-emulate-arm-on-windows-8
-   - docker
-     具体见virtual-machine文章
-     https://zhuanlan.zhihu.com/p/29486013
-     https://www.zhihu.com/question/22969309/answer/286142439
+
+* 软件
+  vhdx2-子
+  software：免安装+安装至vhdx
+  baiduPan：https://github.com/iikira/BaiduPCS-Go
+  7z压缩tar：https://www.cnblogs.com/jinjiangongzuoshi/p/3778926.html
+  vscode&editplus
+  配色方案-安卓（高对比度 solarized ，monokai）：http://color-themes.com
+  potplayer
+  alipay&qq&weixin
+  fdm&thunder
+  java&daemontools
+  cajviewer&office
+  sbeam
+  - chrome/firefox(tor-browser)
+    centbrowser&xx-net
+    chrome报错：https://superuser.com/questions/1208867/chromium-not-loading-any-page-after-moving-user-folder/1208877
+    noCoin：https://chrome.google.com/webstore/detail/no-coin/gojamcfopckidlocpkbelmpjcgmbgjcl
+    https-everywhere：https://www.cmsky.com/https-everywhere/
+    dnscrypt：https://github.com/bitbeans/SimpleDnsCrypt
+tor-browser
+  - avast+comodo
+    https://forum.avast.com/index.php?topic=196929.0
+    https://bbs.kafan.cn/thread-2100263-1-1.html
+    离线安装包：把在线安装包地址中的online改成offline
+
+* linux
+  - debian+xfce
+    vhdx?hyper-v?wsl?docker?
+  - armlinux
+    https://stackoverflow.com/questions/17138970/is-it-possible-to-emulate-arm-on-windows-8
+  - docker
+    具体见virtual-machine文章
+    https://zhuanlan.zhihu.com/p/29486013
+    https://www.zhihu.com/question/22969309/answer/286142439
 
 * 实际使用
   多次尝试后，最后一直使用的方式
