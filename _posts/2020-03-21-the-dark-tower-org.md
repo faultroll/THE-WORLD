@@ -1,4 +1,6 @@
 
+![](peel-the-world.png)
+
 ``` org
 ** 何为幻想体系
    空想科学
