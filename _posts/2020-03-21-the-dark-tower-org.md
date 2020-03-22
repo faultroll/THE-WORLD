@@ -1,5 +1,5 @@
 
-![](/images/peel-the-world.png)
+![](/_images/peel-the-world.png)
 
 ``` org
 ** 何为幻想体系
