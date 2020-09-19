@@ -26,10 +26,44 @@
    - 多工具链
      clang/gcc/msvc均支持
    - 包管理
+   - version control
+     - debug/release
+     - major/minor/patch/build(time/hash/...)
+     - flags/rules/cross/toolchain/platform/arch/os/...
+     - ...
    - 易用性
      可复用/语言简单/...
    - ...
    如果不重视这些问题，一个工程，在迭代过程中，将会不可避免的，变成“屎山”（前人填坑后人添屎）
+*** buildsystem本质
+    1. src --f-- dst | project本质：映射（集合），什么都不做的project：自己映射自己
+    2. src<a1,a2,a3,...> --f1,f2,f3,...-- dst<b1,b2,b3,...> | deps本质：映射（元素），f1,f2,f3之间可不同，可相同（类似接口的概念）
+    3. src<sub1(a1,a2),sub2(a1,a3),sub3(a4),...> --fa1,fa2,fa3,...--, --fb1,fb2,fb3,...-- dst<b1,b2,b3,...> | meson/gn/cmake等buildtool本质：描述映射的语言，将映射转为脚本，即根据deps生成ninja/makefile | 优化：某些映射不是严格分层的，比如src<a1>跟tmp<t1>生成dst<b1>，优化成src<a1>生成tmp<t2>（自己映射自己），tmp<t2>跟tmp<t1>生成dst<b1>，这样利于（并行？）
+    eg. 
+    #+BEGIN_QUOTE
+    1. steps
+       0. src<a1.c/a2.c/a3.cc/a4.d/a5.java/a6.html/a7.ts>
+       1. sub1<a1.c/a3.cc> sub2<a2.c a4.d> sub3<a2.c> sub4<a5.java> sub5<a6.html a7.ts>
+       2. tmp1<b1.so/b2.elf/b3.jar/b4.js>
+       3. tmp2<doc<c1.html/c2.js>/env<c3.jar>/lib<c4.so>/tool<c5.elf>>
+       4. dst<d1.tar.gz>
+       5. deps
+    2. mapping
+       sub3--f0--b2.elf(image it as a move cmd)
+       sub1--f1,f2--b1.so--b2.elf--lib/c4.so--f5--d1.tar.gz
+       sub2--f2,f3,b1.so,f4,b2.elf--tool/c5.elf--f5--d1.tar.gz
+       sub4--f6--b3.jar--b2.elf--env/c3.jar--f5--d1.tar.gz
+       sub5--f7--b4.js--b2.elf--doc/c1.html doc/cj.js--f5--d1.tar.gz
+    3. rules
+       f0: x86_64-c-compiler
+       f1: arm-cxx-compiler
+       f2: arm-c-compiler
+       f3: arm-d-compiler
+       f4: arm-elf-linker
+       f5: tar
+       f6: java-compiler
+       f7: ts-compiler
+    #+END_QUOTE
 
 ** 矛盾
    按照buildsystem需要解决的问题，看看工程上遇到的矛盾和流派
@@ -41,10 +75,13 @@
      - 用其他库，ccc_fff
        跨平台前得先编译该库
      跨平台的问题关系到可移植性和代码侵入性，也可以说是方言/语法糖跟portable/耦合性之间的矛盾
-     eg. 类似
+     eg. 
+     #+BEGIN_QUOTE
+     类似
      #define MK_STRUCT(_type, ...) (_type){__VA_ARGS__}
      debug_printf(lvl, ...)
      如果大量运用在代码中，那么将这个当作一个模块，这部分代码就是跟模块强耦合；想单独剥离出代码进行移植，就得先移植这个模块
+     #+END_QUOTE
      如何平衡耦合性和移植性之间的矛盾？
      当这些东西运用的多的时候（比如在github上有几千的star），这个就变成一个基础库；更上一层，当这个东西被大机构（比如苹果/firefox）运用的多了，就变成了方言（obj-c/rust前身），当这些方言可以通过bootstrap进行自举，这就变成了新的“语言”（obj-c/rust）
    - 包管理
@@ -94,7 +131,14 @@
      一个通用的做法是将编译时间等env/工程信息加到代码内，在崩溃时打印/保存这些信息，便于追溯问题
      但是又会出现另一些问题，比如不能reproducible build造成的某次编译出错，但同个版本的源码下次编译又没有问题，这时候该如何管理
      侵入性也是版本管理中的问题，比如获取到的git/svn地址因utf-8/gbk的字符集问题造成了代码崩溃
-   
+
    做梦做到的矛盾很精辟，现在写出来就很拉跨，不知道为什么，感觉总结的没有梦里精彩，毕竟梦里啥都有...
+
+** buidltools
+   TODO 放一些链接和学习笔记
+   - modern cmake
+   - meson
+   - gn
+
    fini
 ```
