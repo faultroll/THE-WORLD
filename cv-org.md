@@ -4,7 +4,7 @@ layout: page
 permalink: /realworld/
 ---
 
-we don‘t need heroes
+we don't need heroes
 如果需要螺丝钉来拯救，那一定是大厦将倾
 
 ``` org
