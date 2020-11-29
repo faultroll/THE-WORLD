@@ -137,10 +137,517 @@
    做梦做到的矛盾很精辟，现在写出来就很拉跨，不知道为什么，感觉总结的没有梦里精彩，毕竟梦里啥都有...
 
 ** buidltools
-   TODO 放一些链接和学习笔记
-   - modern cmake
-   - meson
-   - gn
+*** 一些资料
+    #+BEGIN_QUOTE
+    build systems: https://ruudvanasseldonk.com/2018/09/03/build-system-insights
+    https://stackoverflow.com/questions/12017580/c-build-systems-what-to-use
+    https://stackoverflow.com/questions/4071880/what-are-the-differences-between-autotools-cmake-and-scons
+    http://leesei.github.io/build-systems/
+    https://carlosvin.github.io/posts/choosing-modern-cpp-stack
+    multi-compiler/target/platform: https://stackoverflow.com/questions/1929846/what-is-currently-the-best-build-system
+    https://stackoverflow.com/questions/14306642/adding-multiple-executables-in-cmake
+    https://stackoverflow.com/questions/636841/how-do-multiple-languages-interact-in-one-project
+    https://stackoverflow.com/questions/25365513/how-to-make-cmake-targeting-multiple-platforms-in-a-single-build
+    demos: https://github.com/dyu/cpp-build-example
+    #+END_QUOTE
+    - modern cmake
+      #+BEGIN_QUOTE
+      cmake config.h.in: https://stackoverflow.com/questions/38419876/cmake-generate-config-h-like-from-autoconf
+      https://stackoverflow.com/questions/647892/how-to-check-header-files-and-library-functions-in-cmake-like-it-is-done-in-auto 
+      https://github.com/dev-cafe/cmake-cookbook
+      cmake: https://axel.isouard.fr/
+      #+END_QUOTE
+    - meson
+      #+BEGIN_QUOTE
+      meson: https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing
+      https://github.com/strfry/webrtc-meson
+      #+END_QUOTE
+    - gn
+      #+BEGIN_QUOTE
+      google gn(gyp): https://blog.csdn.net/weixin_44701535/article/details/88355958
+      https://www.cnblogs.com/xl2432/p/11844943.html
+      https://blog.csdn.net/zhangtracy/article/details/79045363
+      https://blog.csdn.net/zhangkai19890929/article/details/81909780
+      https://blog.csdn.net/caoshangpa/article/details/53353681
+      https://blog.csdn.net/IdeasPad/article/details/100867361
+      https://blog.csdn.net/Vincent95/article/details/78499883
+      https://blog.csdn.net/define_me_freedom/article/details/104196475
+      https://blog.csdn.net/zhangkai19890929/article/details/82013780
+      https://blog.csdn.net/foruok/article/details/70050342
+      https://blog.simplypatrick.com/posts/2016/01-23-gn/
+      https://stackoverflow.com/questions/49860282/how-can-i-create-project-by-chromium-gn-tools
+      因为google相关的都被墙（ https://gn.googlesource.com/gn ），故用github上的镜像（ninja就没这问题，说明gn其实也不是个稳定版本？）
+      以下每个版本都各有特色，推荐用opera的编译成果物
+      build opera gn
+      1. cxx=g++ ld=g++ ar=ar --no-last-commit-position
+      2. generate last-commit-position.h by yourself (mimic the python script), put it in out/
+      3. delete rule build.ninja in ninja.build
+      4. ninja -C out/ gn
+      https://github.com/operasoftware/gn-opera
+      https://github.com/timniederhausen/gn
+      https://github.com/o-lim/generate-ninja
+      https://github.com/vivaldi/Vivaldi-GN
+      https://github.com/chromium/eclipse-gn
+      gn坑：https://blog.csdn.net/u014786330/article/details/84562388
+      https://www.suninf.net/2017/05/gn-usage.html
+      nacl: https://blog.gmem.cc/chrome-native-client-study-note
+      goma: https://blog.csdn.net/Vincent95/article/details/78477597
+      pgo lto: https://developer.ibm.com/technologies/systems/articles/gcc-profile-guided-optimization-to-accelerate-aix-applications
+      kythe: https://maskray.me/blog/2017-07-01-emacs-helm-kythe-and-haskell-xrefs
+      rc: https://blog.csdn.net/wangningyu/article/details/4844687
+      how webrtc gn compile java and c/c++ in one project 
+      build/config/android/internal_rule.gni -- template(compile_java) -- action_with_pydeps -- build/android/gyp/compile_java.py --  build/android/gyp/build_utils.py -- JAVAC_PATH
+      so it compiles java directly using python script, not through ninja build
+      #+END_QUOTE
+*** 开发环境配置
+**** 开发目标需求
+    - win
+      虽然很少有windows上运行程序的开发需求，但如果要开发windows窗口程序（一般是基于qt，当然直接学csharp也可以），也得配置开发环境
+      - msvc
+        - ide
+          直接安装vs2013/2015/...这些ide，优点是方便，但多开发平台难以统一
+        - cl&link+winsdk+buildtools
+          优点是各个平台一致，但是配置麻烦；msvc通过vs_buildtools获取（选），winsdk直接官网下载（版本是跟msvc对应？还是跟windows对应？需确认），buildtools三大跨平台的都行（cmake/meson/gn，cmake后端需选ninja）
+      - mingw/cygwin/msys2/clang/...
+        交叉编译，优点是统一至一个开发环境（*nix平台），缺点是慢（哪怕最底层的mingw，跟msvc原生的比，界面方面仍就是慢）
+    - *nix
+      - gcc/clang
+        build-essential, g++, ...
+      - linaro/android/...
+        交叉编译，一般是跑在板子上，vswork/mips这些架构的交叉编译工具链长啥样没见过，倒是见过ti/stm的裸板工具链（用的是gcc-arm-none-eabi）
+    - macos
+      不熟，没试过，不想，告辞
+      - ide
+        macos上跑的程序不都用obj-c的开发工具？
+      - 本质上是*nix（或者说*bsd？）
+        只要知道交叉编译工具链即可统一至*nix平台
+**** 环境配置
+     windows宿主机，linux虚拟机；windows上配置简易开发环境，linux上做主力开发环境；当作两台独立主机考虑，两者间命令通过ssh/telnet交互，数据通过samba（windows挂载linux）/nfs（linux挂载windows）或tftp（直传）交互
+     - windows
+       msvc
+       https://stackoverflow.com/questions/49089448/how-to-download-and-install-microsofts-visual-studio-c-c-compiler-without-vis
+       https://stackoverflow.com/questions/46684230/visualstudio-build-tools-2017-offline-installer
+       （需运行installer目录下的exe，同时建立2019/buildtool目录）
+       https://blog.csdn.net/zhangpeterx/article/details/86602394
+       https://blog.csdn.net/yxy244/article/details/90368917
+       msbuild编译sln工程：https://www.dearcloud.cn/archives/648
+       https://blog.csdn.net/cloudspider/article/details/95390120
+       按照cmake/gn--sln/vcprj--ninja(nmake)--cl/link/lib(msvc buildtool & winsdk(for libc&libstdc++&...))模式
+       - git-bash（代替cmd）
+         svn cmd（用VisualSVN维护的apache subversion command line tools）
+         https://stackoverflow.com/questions/2341134/command-line-svn-for-windows
+         http://subversion.apache.org/packages.html
+         git-svn: https://blog.csdn.net/iteye_21309/article/details/81600230
+       - vscodium（代码编辑器）
+         只作为编辑工具（配合astyle格式化），当然可以用emacs之类的
+         #+BEGIN_SRC json
+         {
+           "window.zoomLevel": 0,
+           "extensions.ignoreRecommendations": true,
+           "workbench.startupEditor": "none",
+           "workbench.colorTheme": "Tiny Light",
+           "files.encoding": "utf8",
+           "files.autoGuessEncoding": false,
+           "files.eol": "\n",
+           "editor.minimap.enabled": false,
+           "editor.fontFamily": "'Ricty Diminished Discord with Fira Code', 'Sarasa Mono CL'",
+           "editor.fontSize": 16,
+           "editor.renderControlCharacters": false,
+           "editor.tabSize": 4,
+           "terminal.integrated.fontFamily": "'Ricty Diminished Discord with Fira Code', 'Sarasa Mono CL'",
+           "terminal.integrated.fontSize": 16,
+           "markdown.preview.fontFamily": "'Ricty Diminished Discord with Fira Code', 'Sarasa Mono CL'",
+           "markdown.preview.fontSize": 16,
+           "git.ignoreMissingGitWarning": true,
+           "astyle.cmd_options": [
+               "--style=linux",
+               "--indent=spaces=4",
+               "--indent-preproc-block",
+               "--indent-preproc-define",
+               "--min-conditional-indent=0",
+               // "--delete-empty-lines",
+               "--unpad-paren",
+               "--pad-oper",
+               "--pad-header",
+               "--align-pointer=name",
+               "--align-reference=name",
+               "--indent-col1-comments",
+               // "--break-blocks",
+               // "--add-braces",
+               "--indent-switches",
+               "--indent-labels",
+               "--break-one-line-headers",
+               "--attach-return-type",
+               "--attach-return-type-decl",
+               "--max-code-length=80",
+               "--break-after-logical",
+           ],
+           "files.associations": {
+               "*.h": "c"
+           },
+         }
+         #+END_SRC
+         测试等宽用的文本（如果用系统自带的字体，可以用simsum-extb+jheng）
+         #+BEGIN_QUOTE
+         ;; 如果配置好了， 下面20个汉字与40个英文字母应该等长
+         ;; here are 20 hanzi and 40 english chars, see if they are the same width
+         ;;
+         ;; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa| ;; eng
+         ;; 你你你你你你你你你你你你你你你你你你你你| ;; chn
+         ;; ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,| ;; comma
+         ;; 。。。。。。。。。。。。。。。。。。。。| ;; dot
+         ;; 1111111111111111111111111111111111111111| ;; num
+         ;; 東東東東東東東東東東東東東東東東東東東東| ;; jp
+         ;; ここここここここここここここここここここ| ;; jp
+         ;; ｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺｺ| ;; jp
+         ;; 까까까까까까까까까까까까까까까까까까까까| ;; korean
+         ;; 𠄀𠄁𠄂𠄃𠄄𠄅𠄆𠄇𠄈𠄉𠄀𠄁𠄂𠄃𠄄𠄅𠄆𠄇𠄈𠄄| ;; ext-b
+         
+         +----------------------------------------------------+
+         | 中英文等宽对齐设置：按加号或减号按钮直至此表格对齐 |
+         | abcdefjhijklmnoprqstuvwxwyABCDEFJHIJkLMNOPQRSTUVXW |
+         | 𠄀𠄁𠄂𠄃𠄄𠄅𠄆𠄇𠄈𠄉𠄀𠄁𠄂𠄃𠄄𠄅𠄆𠄇𠄈𠄄𠄅𠄆𠄇𠄇𠄆 |
+         | 英文字号   中文对齐设置    EXT-B 对齐设置    测试  |
+         +----------------------------------------------------+
+         #+END_QUOTE
+         插件配置，安装vsix失败可以解压后导入（跟chrome crx一个尿性）
+         TODO linuxkerneldev插件使用
+         #+BEGIN_QUOTE
+         vscode embedded linux: https://marketplace.visualstudio.com/items?itemName=microhobby.linuxkerneldev
+         （bash）https://git-scm.com/download/win
+         （ctags，版本按照非win版本的hash搜）https://github.com/universal-ctags/ctags-win32
+         https://shellbombs.github.io/vscode-for-linux-kernel/
+         https://sthbrx.github.io/blog/2019/05/07/visual-studio-code-for-linux-kernel-development/
+         #+END_QUOTE
+       - superputty(iputty)（跟linux虚拟机交互）
+         iputty配置文件如下，当然也可以用x-term/ms-terminal(with tftp/xftp, x/y/z modem)
+         #+BEGIN_QUOTE
+         zDownloadDir\E:%5Cuser%5CDesktop\
+         szOptions\-e%20-v\
+         szCommand\\
+         rzOptions\-e%20-v\
+         rzCommand\\
+         CygtermCommand\\
+         Cygterm64\0\
+         CygtermAutoPath\1\
+         CygtermAltMetabit\0\
+         HyperlinkRegularExpression\((((https%3F|ftp):%5C/%5C/)|www%5C.)(([0-9]+%5C.[0-9]+%5C.[0-9]+%5C.[0-9]+)|(([a-zA-Z0-9%5C-]+%5C.)%2A[a-zA-Z0-9%5C-]+%5C.(aero|asia|biz|cat|com|coop|kim|info|int|jobs|mobi|museum|name|net|org|post|pro|tel|travel|xxx|edu|gov|mil|[a-zA-Z][a-zA-Z]))|([a-z]+[0-9]%2A))(:[0-9]+)%3F((%5C/|%5C%3F)[^%20"]%2A[^%20,;%5C.:">)])%3F)|(spotify:[^%20]+:[^%20]+)\
+         HyperlinkBrowser\\
+         HyperlinkRegularExpressionUseDefault\1\
+         HyperlinkBrowserUseDefault\1\
+         HyperlinkUseCtrlClick\0\
+         HyperlinkUnderline\1\
+         SSHManualHostKeys\\
+         SSHHostkeyCheck\0\
+         ConnectionSharingDownstream\1\
+         ConnectionSharingUpstream\1\
+         ConnectionSharing\0\
+         WindowClass\\
+         SerialFlowControl\1\
+         SerialParity\0\
+         SerialStopHalfbits\2\
+         SerialDataBits\8\
+         SerialSpeed\9600\
+         SerialLine\COM1\
+         ShadowBoldOffset\1\
+         ShadowBold\0\
+         WideBoldFontHeight\0\
+         WideBoldFontCharSet\0\
+         WideBoldFontIsBold\0\
+         WideBoldFont\\
+         WideFontHeight\0\
+         WideFontCharSet\0\
+         WideFontIsBold\0\
+         WideFont\\
+         BoldFontHeight\0\
+         BoldFontCharSet\0\
+         BoldFontIsBold\0\
+         BoldFont\\
+         ScrollbarOnLeft\0\
+         LoginShell\1\
+         StampUtmp\1\
+         BugChanReq\0\
+         BugWinadj\0\
+         BugOldGex2\0\
+         BugMaxPkt2\0\
+         BugRekey2\0\
+         BugPKSessID2\0\
+         BugRSAPad2\0\
+         BugDeriveKey2\0\
+         BugHMAC2\0\
+         BugIgnore2\0\
+         BugRSA1\0\
+         BugPlainPW1\0\
+         BugIgnore1\0\
+         PortForwardings\\
+         RemotePortAcceptAll\0\
+         LocalPortAcceptAll\0\
+         X11AuthFile\\
+         X11AuthType\1\
+         X11Display\\
+         X11Forward\0\
+         BlinkText\0\
+         BCE\1\
+         LockSize\0\
+         EraseToScrollback\1\
+         ScrollOnDisp\1\
+         ScrollOnKey\0\
+         ScrollBarFullScreen\0\
+         ScrollBar\1\
+         CapsLockCyr\0\
+         Printer\\
+         UTF8Override\1\
+         CJKAmbigWide\0\
+         LineCodePage\\
+         Wordness224\2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2\
+         Wordness192\2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2\
+         Wordness160\1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1\
+         Wordness128\1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1\
+         Wordness96\1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1\
+         Wordness64\1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,2\
+         Wordness32\0,1,2,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1\
+         Wordness0\0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\
+         MouseOverride\1\
+         RectSelect\0\
+         MouseIsXterm\0\
+         PasteRTF\0\
+         RawCNP\0\
+         Colour21\255,255,255\
+         Colour20\187,187,187\
+         Colour19\85,255,255\
+         Colour18\0,187,187\
+         Colour17\255,85,255\
+         Colour16\187,0,187\
+         Colour15\85,85,255\
+         Colour14\0,0,187\
+         Colour13\255,255,85\
+         Colour12\187,187,0\
+         Colour11\85,255,85\
+         Colour10\0,187,0\
+         Colour9\255,85,85\
+         Colour8\187,0,0\
+         Colour7\85,85,85\
+         Colour6\0,0,0\
+         Colour5\0,255,0\
+         Colour4\0,0,0\
+         Colour3\85,85,85\
+         Colour2\0,0,0\
+         Colour1\255,255,255\
+         Colour0\187,187,187\
+         BoldAsColour\1\
+         Xterm256Colour\1\
+         ANSIColour\1\
+         TryPalette\0\
+         UseSystemColours\0\
+         FontVTMode\4\
+         FontQuality\3\
+         FontUnicodeAdjustment\0\
+         FontUnicodeHeight\16\
+         FontUnicodeCharSet\134\
+         FontUnicodeIsBold\0\
+         FontUnicode\Terminal\
+         UseFontUnicode\1\
+         FontHeight\16\
+         FontCharSet\134\
+         FontIsBold\0\
+         Font\Terminal\
+         TermHeight\24\
+         TermWidth\114\
+         WinTitle\cpl@cpl:%20~\
+         WinNameAlways\1\
+         DisableBidi\0\
+         DisableArabicShaping\0\
+         CRImpliesLF\0\
+         LFImpliesCR\0\
+         AutoWrapMode\1\
+         DECOriginMode\0\
+         ScrollbackLines\2000\
+         BellOverloadS\5000\
+         BellOverloadT\2000\
+         BellOverloadN\5\
+         BellOverload\1\
+         BellWaveFile\\
+         BeepInd\0\
+         Beep\1\
+         BlinkCur\0\
+         CurType\0\
+         WindowBorder\1\
+         SunkenEdge\0\
+         HideMousePtr\0\
+         FullScreenOnAltEnter\0\
+         AlwaysOnTop\0\
+         Answerback\PuTTY\
+         LocalEdit\2\
+         LocalEcho\2\
+         TelnetRet\1\
+         TelnetKey\0\
+         CtrlAltKeys\1\
+         ComposeKey\0\
+         AltOnly\0\
+         AltSpace\0\
+         AltF4\1\
+         WindowIcon\\
+         Transparency\250\
+         FailureReconnect\0\
+         WakeupReconnect\0\
+         TrayRestore\0\
+         StartTray\0\
+         Tray\0\
+         StorageType\1\
+         NetHackKeypad\0\
+         ApplicationKeypad\0\
+         ApplicationCursorKeys\0\
+         NoRemoteCharset\0\
+         NoDBackspace\0\
+         RemoteQTitleAction\1\
+         NoRemoteClearScroll\0\
+         NoRemoteWinTitle\0\
+         NoAltScreen\0\
+         NoRemoteResize\0\
+         NoMouseReporting\0\
+         NoApplicationCursors\0\
+         NoApplicationKeys\0\
+         LinuxFunctionKeys\0\
+         RXVTHomeEnd\0\
+         BackspaceIsDelete\1\
+         PassiveTelnet\0\
+         RFCEnviron\0\
+         RemoteCommand\\
+         PublicKeyFile\\
+         SSH2DES\0\
+         LogHost\\
+         SshProt\3\
+         SshNoShell\0\
+         GSSCustom\\
+         GSSLibs\gssapi32,sspi,custom\
+         AuthGSSAPI\1\
+         AuthKI\1\
+         AuthTIS\0\
+         SshBanner\1\
+         SshNoAuth\0\
+         RekeyBytes\1G\
+         RekeyTime\60\
+         HostKey\ed25519,ecdsa,rsa,dsa,WARN\
+         KEX\ecdh,dh-gex-sha1,dh-group14-sha1,rsa,WARN,dh-group1-sha1\
+         Cipher\aes,chacha20,blowfish,3des,WARN,arcfour,des\
+         ChangeUsername\0\
+         GssapiFwd\0\
+         AgentFwd\0\
+         TryAgent\1\
+         Compression\0\
+         NoPTY\0\
+         LocalUserName\\
+         Auth2FactorString\\
+         UserPassword\\
+         UserNameFromEnvironment\0\
+         UserName\\
+         Environment\\
+         ProxyLogToTerm\1\
+         ProxyTelnetCommand\connect%20%25host%20%25port%5Cn\
+         ProxyPassword\\
+         ProxyUsername\\
+         ProxyPort\80\
+         ProxyHost\proxy\
+         ProxyMethod\0\
+         ProxyLocalhost\0\
+         ProxyDNS\1\
+         ProxyExcludeList\\
+         AddressFamily\0\
+         TerminalModes\CS7=A,CS8=A,DISCARD=A,DSUSP=A,ECHO=A,ECHOCTL=A,ECHOE=A,ECHOK=A,ECHOKE=A,ECHONL=A,EOF=A,EOL=A,EOL2=A,ERASE=A,FLUSH=A,ICANON=A,ICRNL=A,IEXTEN=A,IGNCR=A,IGNPAR=A,IMAXBEL=A,INLCR=A,INPCK=A,INTR=A,ISIG=A,ISTRIP=A,IUCLC=A,IUTF8=A,IXANY=A,IXOFF=A,IXON=A,KILL=A,LNEXT=A,NOFLSH=A,OCRNL=A,OLCUC=A,ONLCR=A,ONLRET=A,ONOCR=A,OPOST=A,PARENB=A,PARMRK=A,PARODD=A,PENDIN=A,QUIT=A,REPRINT=A,START=A,STATUS=A,STOP=A,SUSP=A,SWTCH=A,TOSTOP=A,WERASE=A,XCASE=A\
+         TerminalSpeed\38400,38400\
+         TerminalType\xterm\
+         TCPKeepalives\0\
+         TCPNoDelay\1\
+         PingIntervalSecs\0\
+         PingInterval\0\
+         WarnOnClose\1\
+         CloseOnExit\1\
+         PortNumber\22\
+         Protocol\ssh\
+         SSHLogOmitData\0\
+         SSHLogOmitPasswords\1\
+         LogFlush\1\
+         LogFileClash\-1\
+         LogType\0\
+         LogFileName\putty.log\
+         HostName\10.67.210.17\
+         Present\1\
+         #+END_QUOTE
+     - linux
+       在无网络/cpl，虚拟机，可通过从外部拷贝（光盘等）的情况也可以成功配置
+       保证hyper-v和virtualbox都可以运行，只能选vhd
+       vhd1: sys debian-cd, minimal(no-xfce) 大小2g或4g（留个备份，不同工具链不同，更希望是编译链这种安装在work内，这样只需要1g，而且不用更换）
+       https://cdimage.debian.org/debian-cd/10.4.0/amd64/iso-cd/debian-10.4.0-amd64-xfce-CD-1.iso
+       注意的点
+       - 用二代虚机安装
+       - locale默认en_US.UTF-8，否则会出现棱形乱码（用ssh链接的情况下zh_CN.UTF-8能正常显示中文）
+       - 安装时linux不要force efi，grub一定要force efi
+       - 安装完删除虚机（保留vhd），然后用一代虚机或virtualbox等进行后续操作（二代虚拟机起不来的）
+       - CPU至少2核，否则编译很吃力；另外不要选动态内存，固定2g内存，动态内存容易出现因内存泄漏导致host卡死的问题
+       vhd2: soft opt
+       vhdx: xfer (因为没法apt，所以装包不方便，samba/nfs的模式行不通），作用类似usb，host挂载拷贝后卸载，虚拟机再挂载；要创建scsi驱动器，ide驱动器不支持热插拔
+       开启ssh后通过ssh调试即可
+       - 坑
+         - busybox没有链接命令至/bin/下
+           busybox --install
+         - 用bash替换dash（source等命令无效）
+           https://blog.csdn.net/mvpme82/article/details/7615454
+         - 静态ip（/etc/network/interfaces）
+           https://blog.csdn.net/guigui_oy/article/details/80913526
+           新建虚拟网卡eth0（不能用default-switch，其无法设置成静态ip），设置成静态ip，虚机设成同一网段即可
+           host ping虚机可以，虚机ping host不行（防火墙）
+           https://blog.csdn.net/hskw444273663/article/details/81301470
+           若需要动态ip（建议一张静态一张动态）：https://www.cnblogs.com/hustdc/p/9749012.html
+         - 缺工具
+           用debian-dvd的3张dvd，然后apt-cdrom更新apt list
+           - build-essential(make gcc) g++ autoconf pkgconfig cmake（meson/gn/ninja通过移植方式）
+           - samba nfs
+           - screen mg（micro-emacs，哪怕emacs-nox也要400mb的空间）
+           - lxc
+           - tree ntpupdate ...
+         - ssh
+           /etc/init.d/ssh restart
+           可连外网的情况：一块网卡内部，固定ip，一块外部，用于apt
+         - samba
+           host要开启samba服务，配置map to guest不要设成bad usr，设成never即可
+           https://www.jianshu.com/p/be7dc5875923
+           不同用户不同目录（%S）：https://blog.csdn.net/JerryGou/article/details/80946858
+         - /opt单独磁盘
+           lvm相关操作（pv--vg--lv三层，具体百度即可）
+           swap分区：https://www.cnblogs.com/gumutianqi/articles/2079635.html
+         - 交叉编译工具链安装后显示 no such file or directory
+           64位的虚机，工具链需要32位的库（lib32z1 lib32stdc++6 )
+           安装完后需要 source /etc/profile 才能让PATH变化生效
+           http://www.itskill.cn/ArticleDetail/post-275
+         - 中文棱形（乱码），不需要解决（用ssh链接即可）
+           没有中文字库（需先配置apt源）：apt-get install fonts-noto-cjk
+           更换源：https://www.cnblogs.com/acmexyz/p/12868760.html
+           配置apt出现问题：https://blog.csdn.net/zhemejinnameyuanxc/article/details/100030629
+           如果字库安装不成功，设置locale切回en_US.UTF-8：https://www.cnblogs.com/linxiong945/p/4200097.html
+       - 工作环境刻盘（virtual-box）
+         工具链/不常用的工具都可以通过/etc/profile的模式（模仿hisi的工具链）来添加，而不是直接放在/usr/bin下
+         vb网络配置（用host-only模式）：https://www.myway5.com/index.php/2020/04/21/virtualbox-%E7%9A%84%E5%87%A0%E7%A7%8D%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%BC%8F/
+         工作环境兼容性（win7 64遇到的问题）：字体ttf，vb6.0.x（同时注意6.0.x会跟hyper-v冲突，但6.1.x不会），superputty没有.net
+*** 我的选择
+    cmake/meson/gn都使用了一段时间，最后还是定下以meson为主（其实仍在gn和meson间纠结）
+    qt关于buildtools的选择（替换qbs）：https://www.phoronix.com/forums/forum/software/desktop-linux/1037141-what-build-system-should-qt-6-use
+    #+BEGIN_QUOTE
+    CMake is the safe pick. It is likely the best pick today. If you aren't going to put time into the build system (which is a fair decision), then choose CMake. 
+    Meson doesn't fit the requirements. Try to build a current meson project (a real one, not hello world) with a meson build from two years ago and watch it burn.
+    GN is unusable for projects that aren't Chromium (and AFAIK that's intentional).
+    #+END_QUOTE
+    18年的文章，看看就好，meson进步挺大，但上面的说法也很有道理，最终还得看个人喜爱
+    - why not gn
+      太多功能是为了google自己设计（goma/abseil/...），compile-check（这个可能是没找到），资料少，不是真正的多语言支持；当然优点也很多，设计之初就是为跟ninja配套（名字就是generate ninja），抽象的非常nice（多平台），成果物单文件（类似ninja）
+      gn除了chromium，同时也是llvm期望使用的buildtool: https://github.com/llvm/llvm-project/tree/master/llvm/utils/gn
+      关于compile-check，gn是通过exec_script运行python脚本实现，没有meson方便（毕竟本身就是python程序）
+      #+BEGIN_QUOTE
+      compiler checks. In GN, these could use exec_script to identify the host compiler at GN time.
+      #+END_QUOTE
+    - why not modern cmake
+      compile-check，没有多语言支持（名字就是c/c++ makefile）；相对其他两个的优点就一个，资料很多（因为用的人多）
 
    fini
 ```
+
+
