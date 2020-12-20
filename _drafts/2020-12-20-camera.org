@@ -1,0 +1,563 @@
+
+
+可以认为是我从工作到现在的阶段性技术总结
+- 相机系统（音视频系统）
+  - (bsp)嵌入式linux/rtos
+    - bsp
+    - 移植
+  - (dsp)音视频
+    - 输入输出芯片
+      - sensor
+    - 音视频处理芯片
+      - hisi/rockchip/...
+      - (dsp)编码/(app)封装
+        编码是为了压缩/传输（某些信号能传输更远）
+        封装是为了传输（包/流/...）
+  - (app)网络/协议
+    - webserver
+    - router
+  - (jx/yt)电机控制
+  - (isp)图像处理
+  - (app)gui
+
+- 业务层
+- 逻辑层
+
+
+
+* 需求分解
+** 视频输出
+- 分辨率/制式
+- 接口/格式/色域
+- 网络
+  - 码率控制
+  - 三码流
+  - 抓图（jpeg）
+** 音频输出
+** 图像控制
+- PTZFS(pan, tilt, zoom, focus, iris)
+  - 机芯控制
+- 图像
+  - ISP
+    - 视频参数
+    - 白平衡
+    - 聚集
+    - 降噪
+    - 曝光
+    - 强光抑制
+    - 滤镜
+    - 防抖
+    - 其他
+      - 防红溢出
+      - 亮度均匀
+  - OSD
+    - TAG/date
+    - mask/mosaic
+  - 场景（组合）
+  - 冻结
+- 客户端
+  - 按键板
+  - web
+  - clientdemo
+  - 4200
+  - 232/485/云台
+- 参数保存
+  - file/flash
+  - xml/database
+** 其他
+- 快速启动
+- 加密信息/平台区分/系统信息
+- 升级
+- gpio控制（led等）
+
+* 概要设计
+** 示意图
+      +-------------+                                 +---------------+
+      |1-加密信息   |      +-----------------------+  |1-platformdiff |
+      |             +----->+1-消息同步(mq)   ----  +->+模块初始化/能力|
+      +-------------+      |2-功能提取(mod) (core) |  +---------------+
+                           |3-...            ----  +--
+      +-------------+   /->+-----------------------+  \->-------------+
+      |2-request    +---                                |2-功能查询   |
+      |功能         |                                   |分发消息     |
+      +-------------+                                   +-------------+
+** core
+libnng（inproc://模式）
+- message分发
+  - 调用模块：调用功能（不分dsp、isp、机芯这种实现模块，而是图像/视频这种）
+    多对一/双向：多个req/rep
+  - 功能模块：抽象功能
+    一对多/双向：survey模式（每个都会收到） or pub/sub模式（仅对应会收到）+push/pull
+    选用survey模式
+  - 示意图
+                                      8. 图像控制模块并响应
+           7. img+exp+data            3. 图像控制模块收到img并响应，其他模块不响应
+           1. img+stria               2. survey发送img+stria
+           +--------------------+     +----------------------+
+           |                    |     |                      |
+  +--------+--+              +--+-----+--+                +--+--------+
+  |去横纹算法 |              | core      |                |图像控制   |
+  |           |              |           |                |           |
+  +--------+--+              +--+-----+--+                +--+--------+
+           |                    |     |                      |
+           +--------------------+     +----------------------+
+           6. img+stria+data          4. 图像控制模块计算的exposure time
+           10. img+exp+ok             5. survey发送img+stria+data
+                                      9. 图像控制模块设置exposure time，返回img+exp+ok
+- 问题
+  - 消息函数接口怎么写？
+    思考funcA和funcB，均调用同一个接口caller(enum, data)，其中宏可以自己定义，这个函数需要进行4个步骤：form, send(to core), recv(from core), return，这样需要考虑recv的msg包到底哪个才是send过去的；需要考虑：跟core是长连接还是短连接、多线程、recv是否阻塞
+  - 怎么返回给该次调用？（6, 10可以通过req/rep，但是5, 9不行）
+    通过包内容来判断（magic/tid），这样core只关注消息分发，而不必关注消息解析
+  - 调用模块生成参数（data怎么组成），功能模块怎么解析参数（data怎么使用）
+    协议，api-design(restful, soap, rpc, ...)
+- 方案
+  1) survey+survey
+     core仅负责分发，每个module均会收到所有包，根据magic自行解决
+  2) req/rep+survey（不适合，因为会导致阻塞？）
+     连上时获得magic，并在request包内加上；core根据caller magic进行reply，called一致
+  3) push/pull&pub/sub+pub/sub&push/pull
+     https://tisyang.github.io/post/2019-02-22-think-about-nng-library/
+     一对多都用pub/sub，一对一都用push/pull
+     两个url（一个pub/sub，一个push/pull），只初始化一次，caller的sub的sock一次性初始化完全部，并存在stack中，用的时候进行pop/push，即如下图
+     +----------+       +----------+       +----------+
+     |callerfunc|       |coretask  |       |calledtask|
+     |----------|       |----------|       |----------|    +----------+
+     |send(push)+------->recv(pull)<--\ /-->recv(sub) |    |proc(msg) |
+     |----------|       |----------|   X   |----------|    |----------|
+     |recv(sub) <-------+send(pub) +--/ \--+createtask<----+send(push)|
+     +----------+       +----------+       +----------+    +----------+
+     其中msg由{from, to, data}组成，proc(msg)时即调用真正的功能函数进行处理，又将from和to交换
+** 视频输出
+
+* 机芯（Camera Module）
+接口暴露，开发便利，步骤拆分（启动等）
+** 何为机芯
+图像采集-->视频/码流输出，图像/视频控制，最基本的跟图像/视频相关的设备及软件
+#+BEGIN_QUOTE
+摄像机机芯主要由两大部分构成，即光学部分和软硬件。
+光学部分是一体机机芯的成像系统，通常称一体机镜头。一体机镜头是一体机机芯的核心部件，直接影响一体机机芯的品质。它的关键部件主要包括：光圈、马达和滤光片切换等部件。
+软硬件系统的核心技术在于自动聚焦，聚焦速度和效果的好坏，直接影响到用户对监控现场图像的抓取和录像。目前，自动聚焦的实现方式有主动式和被动式两种，其性能可以从聚焦精准度、聚焦速度、定焦时的稳定性三个方面来评价。
+#+END_QUOTE
+** 组成
+*** 光学部分
+- 镜头
+- sensor
+- 电机控制系统（有/无反馈）
+  ZFS: zoom+focus+iris
+  无反馈的需要记录曲线等信息
+*** 软硬件平台
+视频线、音频线、控制线
+- vi/ai --> isp --> vpss --> vo/venc/ao/aenc/... --> hdmi/sdi/web/sdk/...
+- 接口控制
+  - 图像参数（图像增强/电机控制/缩放/滤镜等）
+  - 视频参数（码流/输出等）
+  - 音频参数（混合流）
+  - 其他控制（OSD等，机芯只负责提供缓冲区，并将缓冲区叠加至码流，后续需自行开发？？）
+- 对外不透明
+  - 接口
+  - 协议对接（不属于机芯组件，机芯负责出封装后的流，并能对流进行控制，后续需要自行开发）
+** 问题
+- 双目/多目相机
+- 型号区分/能力/可维护性
+- 单纯功能性
+  dsp部分即可，app感觉无用
+  - dsp（机芯本质）
+    功能性，库性质
+    - 通信
+    - 状态/参数
+    - 启动/看门狗?
+  - app
+    - 控制（按键板/web/sdk/...）
+    - 协议（ONVIF/...）
+    - 额外功能（PT控制/gpio/...）
+
+
+整个系统是
+- 多in多out
+  (1234..)a---b(1234...)
+  取节点分析，拆分成两类
+  - 多in一out
+    (1234..)a
+    相机模式
+    采集/拆分
+  - 一in多out
+    b(1234...)
+    主机模式
+    显示/融合
+- 仿造ISAPI模式（xml树）
+  整个系统的控制流（xml树）
+  database表，类似
+  key | 多in一out | 一in多out
+  - 多in一out
+    采集-->ISP-->编码-->封装
+    通道（一分多）
+    电机控制
+  - 一in多out
+    解封装-->解码-->OSD-->显示
+    通道（多合一）
+
+
+
+
+databaseabstractionlayer&dataaccessobject&...
+https://github.com/babelouest/hoel
+https://github.com/surparallel/pelagia
+https://github.com/jelu/dbo
+https://github.com/xcomart/libcmdbm
+db抽象，只是管理表，前端用户管理（用户也是表）等，后端文件操作（装逼词汇叫持续性？）等
+类似json/xml本身就带有数据库，可以直接当作抽象？需考虑。另外xml/json和db互转等也需考虑是属于哪层。
+redis&memcached
+https://www.cnblogs.com/powertoolsteam/p/redis.html
+https://www.imydl.com/linux/8884.html
+https://blog.csdn.net/liqingtx/article/details/60330555
+https://github.com/daoluan/decode-memcached
+https://github.com/linyiqun/Redis-Code
+https://github.com/symisc/vedis
+https://github.com/Tencent/wcdb
+gitci:https://uchicago-cs.github.io/cmsc22000/labs/
+关系型数据库（res和fps关联）
+https://www.cnblogs.com/yadiel-cc/p/11121534.html
+https://www.cnblogs.com/pannengzhi/p/2017-05-28-relational-database-design.html
+https://blog.csdn.net/dc_726/article/details/42784317
+json/xml是通过序列化、反序列化来转换
+e-r digram
+https://blog.csdn.net/zjuwxx/article/details/96381296
+https://userpages.umbc.edu/~cseaman/ifsm636/lect0927.pdf
+三元关系：https://blog.csdn.net/u010927139/article/details/26134535
+https://segmentfault.com/q/1010000002908419
+
+数据库内能力/参数区分
+解决方案（表关联、三/多元转二元）
+https://stackoverflow.com/questions/23509334/sql-foreign-key-with-multiple-child-values
+https://blog.csdn.net/du664754270/article/details/106886646
+https://blog.csdn.net/yaoyuanbo/article/details/82454043
+关联：两个属性组成关联表（res:720/1080/2k/4k fps:25/30/50/60）；互斥：两个属性组成关键表（fps:25/30/50/60 wdr:0/1）
+问题
+- venc的res, fps和vdec的res, fps应该是两个关联表（肯定不是mod, res, fps，因为这样就是三元关系了）
+- create chn时该不该指定res等param（业务上是需要的，因为不同chn支持的param可能不一样）
+使用场景
+- 全景拼接
+- ipc
+- nvr
+重点问题: vi(硬件对应), venc(拼接)
+
+dsp抽象
+- 模块抽象
+各个部分模块化，不考虑关联，只需要考虑初始化、输出输出、配置获取参数
+各个模块之间只有两种方式连接（参考gstreamer），bind（数据流）和attach（控制流）
+bind: videv(sensor/hdmi-in/...)-vi-venc-vmulti-vstitch-vdec-vo-vodec(hdmi-out/...)
+除此之外还有input(while{data_gen})和output(while{data_get})（data_gen/data_get通过回调注册即可），应对如从文件输入/venc输出后封装/...的使用场景
+除了vmulti一进多出，vstitch多进一出，其他的都是一进一出
+attach: isp(sensor)/vproc(vgs/iep)/iproc(tde/rga)/intelli/...
+- 数据库抽象
+能力集就是参数的可设置集合
+考虑res/fps/wdr三个属性
+  - 关联/互斥，res--fps，fps--wdr
+  - 不同模块不同，vi的res/fps和venc的res/fps不同
+建表时
+  - 建立res/fps/wdr三个表（不当成属性，而是实体）
+  - 三元关系拆分成二元，即res-fps/fps-wdr两个关联表
+  - 每个模块一个res-fps/fps-wdr关联表（或者合成大表，即mod-res-fps/mod-fps-wdr）
+```
+- 硬件接口（接口+信号）
+  输入输出芯片:iface(hdmi/sdi/...)/conn(i2c/spi/...)/datatype/edid/...
+  - vin/out
+    - analog(in:ad, out:da)
+      - bnc+cvbs/tvi/...?
+    - digital
+      - mipi+mipi?
+      - bt1120+bt656
+      - sdi+3g-sdi?
+  - ain/out(芯片)
+      - analog(with acodec(ad/da))
+        - mic(rophone)
+        - loud(speaker)
+      - digital
+        - pcm
+        - i2s
+  - other
+    - 片上
+      - i2c
+      - spi
+      - pcie/dma???
+    - 片外
+      - gpio(general-purpose input/output)
+        led/alarm/滚珠/...
+      - serial-com(单工/双工/半双工--485/232/...)
+        其他设备（云台/按键板/...）
+      - network(rj45/wifi/4g/5g/...)
+        ...
+      - usb
+        storage/keyboard&mouse/uvc(usbcam)/...
+      - sd/tf/sim/...
+        ...
+- sensor
+  - res/fps/bitwidth/format(bayer)/...
+    res--fps--bitwidth fps--wdr 
+  - wdr/ldc/gamma/lut/nr/ccm
+  - rotate/mirror
+- elen（电动镜头）
+  - zoom/focus/iris
+  - ir-cut
+    有以下几种说法，综合查阅后正确结论：icr==ir-cut==Infrared Cut-Filter Removal，一个取全部（icr），另一个取半部分（ir-cut）
+    - icr是错误的，应是icf，即ir-cut fliter，红外截止滤光片
+    - icr是电磁式/电机式滤光片切换器；ir-cut是icr切换的一种方式
+    - ICR (Infrared Cut-Filter Removal)
+      https://www.cctvforum.com/topic/10758-is-icr-ircut/
+      https://learncctv.com/what-is-icr/
+- 云台
+  英文tripod head（三脚架的架头），日本首创的词汇：http://www.ipm.jp/ipmj/these/these73.html
+  - pan/tilt
+- 电机控制
+  - 键控
+    ptz--preset/patrol/pattern fs--ae/af
+    - 方向
+    - 速度
+  - limit
+    ptz--eptz fs--ae/af
+  - preset
+  - patrol(presets+delay)
+    patrol--preset
+  - pattern
+  - 值控（名字不够准确）
+    pan/tilt角度值；zf w/t值（sony坐标）；s数值（1/4...）
+- isp
+  - basic(亮度/色度/饱和度/对比度/锐度/...）
+  - 3a(awb(auto/manual)/ae(auto/manual/shutter/iris/gain)/af(auto/manual/semi))
+    ae/af--sensor--elen
+  - denoise(时域/空域)
+  - defog
+  - ldc
+  - anti-shake（防抖）
+  - rotate/mirror
+  - scene
+- venc
+  fps/res/streamtype(h264/mjpg/...)
+  - rc
+    rctype(cbr/vbr/...)/rate(limit)/Qp/GOP
+- vdec
+  fps/res/streamtype/...
+- vmulti
+  multi(一分多)
+- vstitch
+  stitch(多合一)
+  - 融合拼接（两幅图之间需要融合，如全景拼接）
+  - 非融合拼接（不需要拼接，如4/9/16宫格）
+    拼接屏：vmulti一分多，然后vproc裁剪，再经过vo输出到不同的设备上
+- vproc
+  crop/rotate/mirror/...
+- vi
+  vi需要检测信号有无，检测输入的信号信息，参数不是可配（或者配置max/min值），而是需要检测
+  fps/res/...
+  - pixeltype(yuv420/rgb1555/...)
+  - bitwidth(8bit/10bit/...)
+- vo
+  fps/res/type/bitwidth/...
+- ai
+  samplerate(44.1/...)/bitwidth(8/16/32)/datatype(i2s/pcm/...)
+- aenc
+  samplerate/bitwidth/streamtype(aac/g.711/...)
+- adec
+  samplerate/bitwidth/streamtype
+- amulti
+- astitch
+  mixer（混音）
+- aproc
+  3a(aec/agc/anr)/resample/eq/...
+- ao
+  samplerate/bitwidth/datatype
+- vintelli（智能/类智能）
+  md(motion detect)/fd(face detect)/...
+- aintelli
+  人声（识别/增强/...）
+```
+
+
+面试列问题
+- 意向（五十二所）
+  - 职位
+    管理/组长、软件/产品
+  - 地点
+    五十二所、军用、余杭区阿里旁
+- isp部分
+  - 算法
+    - 参数调优（颜色/景深/...）
+      - PC工具（matlab/...）
+      - 测试环境
+    - 算法开发
+      - 3a/ldc/denoise/defog/...
+  - 硬件
+    - sensor/镜头
+    - asic(hisi/rockchip/amba/...)
+
+
+系统套娃
+```
+整体架构
+dspapp分成三部分
+- 业务接口
+  - json解析/构成
+  - 业务拆分
+- 逻辑调用
+  - 调用dsp/isp/jx/bsp/...
+- 数据库/能力集
+接受到的业务皆以任务的形式下发，业务和逻辑两部分通过message queue以命令的形式交互，两部分都需要能力判断
+
+业务接口
+- json解析/构成
+主要有两个作用
+  - 构成上报的能力集，如vmerge_capability
+  - 解析chipmodule调用函数传递的json
+    如从vmerge_param中的json解析出对应的合码路数/源分辨率/帧率等信息
+- 业务拆分
+主要有三个作用
+  - 被调用的函数发送任务给对应的任务线程
+    如下发的合码（vmerge）任务，因接口函数需要非阻塞，故初始化时创建合码线程，调用函数时向合码线程下发任务
+  - 查询业务能力并检测是否满足
+    如4路合1路的合码任务，会进行业务相关能力判断，是否支持4路解码，是否仍有4路解码可用
+  - 将业务转换为逻辑
+    如4路合1路的合码任务，会被拆分成1路输入+4路解码+1路拼接+1路编码+1路输出的组合逻辑，然后发送给逻辑部分
+
+逻辑调用
+- 调用dsp/isp/jx/bsp/...
+主要有三个作用
+  - 调用对应的函数
+    如4路合1路的合码任务，传输至逻辑层的命令，会分别调用
+    - 调用1次dsp_create_input_chn，创建1个从内存获取帧通道
+    - 调用4次dsp_create_vdec_chn，创建4个解码通道
+    - 调用1次dsp_create_vs_grp，创建1个从拼接组，再调用4次dsp_create_vs_chn，创建4个该组的拼接通道
+    - 调用1次dsp_create_venc_chn，创建1个编码通道
+    - 调用1次dsp_create_output_chn，创建1个发送帧至内存通道
+  - 查询逻辑能力并检测参数是否合法
+    如dsp_create_venc_chn函数，会检测编码参数是否支持，如不支持，则会返回错误码，并停止组合逻辑
+
+数据库/能力集
+主要有两个作用
+- 查询业务能力并上报或检测是否满足
+- 查询逻辑能力并检测参数是否合法（是否具备该能力已经在编译时做了区分）
+```
+
+```
+数据库设计
+- 场景
+  两个模块，vi和venc，模块之间传递视频帧vframe；使用sqlite3作为数据库（标准sql语言）
+  - vframe
+    视频帧具有res(1080/...)、pixeltype(yuv420/...)、bitwidth(8bpp/...)共3个属性
+  - vi&venc
+    这两个模块对视频流进行处理（视频流由视频帧组成），除了具备视频帧的属性vframe_in、vframe_out（视频帧输入和输出）外，还具有、fps(30/...)、streamtype(raw/enc/...)共2个属性；其中fps的取值范围和res关联（如res=1080, fps=(25,30,50,60); res=4k, fps=(25,30)）；
+    - vi
+      该模块是视频输入模块，除了具备视频流的属性外，还具备wdr(on/off)共1个属性，但vframe_in为null；其中wdr的取值和fps关联（如fps=25, wdr=(on,off); fps=60, wdr=(off)）；同时fps依旧会跟res关联（三元关系？）
+    - venc
+      该模块是视频编码模块，除了具备视频流的属性外，还具备enctype(h264/...)、rctype(cbr/...)共2个属性，且vframe_in和vframe_out可以不同
+- 思路
+  要解决几个需求
+  - 能力
+    能力即参数可设置的范围（连续）/值（离散）；需要能方便的获取能力，生成json（serialize序列化，可以直接用sqlite的json模块）；故考虑将能力做成表，这样参数表的约束便是从能力表中获取
+  - 关联
+    关联变量需要处理，且除了参数表中体现外，能力表中也需要体现
+  - 复用
+    每个模块都有vframe，但各个模块的vframe属性各不相同，可以用vi_res/venc_res表示，但最好能够复用，单独建表
+- 建表
+  - 能力表
+    每个单独的属性建立属性表，列为模块/属性共两（离散）/三（连续）列，composite key；如datatype这个离散属性，建立表mod/datatype，穷举值以表示能力（如vi, yuv420; vi, rgb1555; venc, yuv420）；或bitwidth这个连续属性（如果是连续可配的情况），建立表mod/bitwidth_min/bitwidth_max，穷举范围以表示能力（如vi, 8, 16; venc, 8, 8）
+    当属性关联时，建立关联表（junction table），列为模块/关联属性1/关联属性2共三列（三元关系可以拆分为三个二元关系），composite key；如fps/res/wdr关联，建立表mod/res/fps，穷举值以表示能力（如vi, 1920x1080, 60; vi, 3840x2160, 30; venc, 1920x1080, 30），建立表mod/fps/wdr，穷举值以表示能力（如vi, 30, on; vi, 25, on; vi, 50, off）
+  - 参数表
+    直接建立vframe_in, vframe_out, fps, streamtype, wdr表，称为vi_param，该表每个属性的约束从对应的能力表中获取
+- 问题
+  - 能力表方案是否可行（序列化等问题）
+  - 连续能力是否需要三列（即min/max能否合并成一列）
+  - 关联表方案是否可行（特别是三元关系）
+  - 部分关联表是否需要mod属性（如wdr是vi模块特有）
+  - 参数表这样建立，约束是否可以被获取（如何用sql获取）
+
+sqlite in-memory模式
+https://blog.51cto.com/47917/1398914
+https://www.cnblogs.com/bbqzsl/p/6066851.html
+https://www.sqlite.org/inmemorydb.html
+http://sqlite.1065341.n5.nabble.com/speed-test-Sqlite3-vs-BerkeleyDB-I-m-confused-td49718.html
+backup to file: https://www.cnblogs.com/orangeform/archive/2012/01/19/2326309.html
+json: https://www.sqlite.org/json1.html
+https://segmentfault.com/q/1010000002432037
+disk转memory：https://www.v2ex.com/t/341566
+https://www.cnblogs.com/HPAHPA/articles/7662268.html
+examples: https://www.tutorialspoint.com/sqlite/sqlite_c_cpp.htm
+
+junction table
+https://stackoverflow.com/questions/65246687/how-to-link-two-tables-using-foreign-key-under-certain-conditions-in-sql
+https://launchschool.com/books/sql/read/table_relationships
+https://stackoverflow.com/questions/7296846/how-to-implement-one-to-one-one-to-many-and-many-to-many-relationships-while-de
+https://stackoverflow.com/questions/2190272/sql-many-to-many-table-primary-key
+https://stackoverflow.com/questions/23850396/composite-vs-surrogate-keys-for-referential-integrity-in-6nf
+https://blog.csdn.net/u011781521/article/details/71083112
+constraint
+https://stackoverflow.com/questions/1813321/what-should-i-name-a-table-that-maps-two-tables-together
+https://stackoverflow.com/questions/28679208/add-multiple-check-constraints-on-one-column-depending-on-the-values-of-another
+https://dba.stackexchange.com/questions/34151/how-to-have-a-one-to-many-relationship-with-a-privileged-child
+https://stackoverflow.com/questions/4361381/how-do-we-implement-an-is-a-relationship
+https://www.v2ex.com/t/619930
+check约束：https://blog.csdn.net/qq_29726359/article/details/88058696
+实体的属性其实是列名，属性即参数，能力是参数的取值范围，即属性的约束。能力关联/互斥即填表时的关联约束？
+https://blog.csdn.net/ff_hh/article/details/88052335
+https://blog.csdn.net/Liumou316/article/details/106586900
+
+```
+
+Hi3516A平台相机软件介绍
+1. 整体架构
+* 数据流
+  - 镜头
+  - sensor/a-codec
+  - vi pipe/ai
+  - vpss
+    1) 远端码流
+       - venc/aenc
+       - h.264/.../g.711/...（编码）
+       - ps/rtp/...（封装）
+    2) 本地输出
+       - vo
+       - bt1120/.../pcm/...（封装）
+         BT601是SDTV的数据结构 BT656是SDTV(1280x720P@60Hz)的interface PCLK+8bit Data
+         BT709是HDTV的数据结构 BT1120是HDTV(1920x1080P@60Hz)的interface PCLK+12bit Data 或者 PCLK+16bit Data
+       - sdi/hdmi/...（编码）
+   - region
+* 控制流
+  - 机芯库
+  - isp
+  - dsp/研究院
+  - app
+* 构成
+** 机芯/heop
+   完整的数据流及部分控制流
+** 全景/...（额外控制流）
+    - pt（以及zfs联动部分）
+    - menu
+    - 协议/接入
+    - 
+
+2. 启动流程
+1) daemon启动
+   - 加密/快速启动
+   - ipc通信
+2) database
+   - 参数保存
+3) davinci/netprocess/..
+   - 控制流（232/485/web/sdk/pt/..）通路
+   - 能力集
+   - 机芯库交互
+   - 额外控制流（pt/mcu/..）通路
+4) dsp
+   - app交互（armlib）
+   - 视频/音频/region
+   - isp交互
+
+
+![](https://upload-images.jianshu.io/upload_images/293860-4cd7e3ec18406a7e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+![](https://upload-images.jianshu.io/upload_images/293860-baf689ea562d576b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+扫描（SCAN）、花样（PATTERN）、巡航（PATROL）：https://zhidao.baidu.com/question/1371953268887787659.html
+
+heop：https://www.hikvision.com/en/Partners/Embedded-Open-Platform
+panorama - 全景
+
