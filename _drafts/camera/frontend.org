@@ -1,30 +1,5 @@
 
 
-可以认为是我从工作到现在的阶段性技术总结
-- 相机系统（音视频系统）
-  - (bsp)嵌入式linux/rtos
-    - bsp
-    - 移植
-  - (dsp)音视频
-    - 输入输出芯片
-      - sensor
-    - 音视频处理芯片
-      - hisi/rockchip/...
-      - (dsp)编码/(app)封装
-        编码是为了压缩/传输（某些信号能传输更远）
-        封装是为了传输（包/流/...）
-  - (app)网络/协议
-    - webserver
-    - router
-  - (jx/yt)电机控制
-  - (isp)图像处理
-  - (app)gui
-
-- 业务层
-- 逻辑层
-
-
-
 * 需求分解
 ** 视频输出
 - 分辨率/制式
@@ -500,6 +475,20 @@ check约束：https://blog.csdn.net/qq_29726359/article/details/88058696
 实体的属性其实是列名，属性即参数，能力是参数的取值范围，即属性的约束。能力关联/互斥即填表时的关联约束？
 https://blog.csdn.net/ff_hh/article/details/88052335
 https://blog.csdn.net/Liumou316/article/details/106586900
+postgresql
+https://linux.cn/article-10512-1.html
+https://github.com/digoal/blog/blob/master/201702/20170209_01.md
+lts: https://www.postgresql.org/support/versioning/
+embedded: https://www.postgresql.org/docs/current/ecpg.html
+constraint table
+https://stackoverflow.com/questions/3880698/can-a-check-constraint-relate-to-another-table
+https://dba.stackexchange.com/questions/73828/check-constraint-references-another-column-in-same-table
+（不建议这样做，参考Josh Smeaton的答案，设计时优化更好）https://stackoverflow.com/questions/2588072/how-do-i-create-a-multiple-table-check-constraint
+sqlite amalgamation
+https://stackoverflow.com/questions/559468/why-does-sqlite-provide-amalgamations-of-their-code
+https://stackoverflow.com/questions/615213/where-can-one-find-source-archives-of-old-sqlite-versions
+https://github.com/azadkuh/sqlite-amalgamation
+chromium使用的版本：https://github.com/chromium/chromium/blob/89.0.4359.1/third_party/sqlite/README.chromium
 
 ```
 
@@ -561,3 +550,6 @@ Hi3516A平台相机软件介绍
 heop：https://www.hikvision.com/en/Partners/Embedded-Open-Platform
 panorama - 全景
 
+
+编码是为了压缩/传输（某些信号能传输更远）
+封装是为了传输（包/流/...）
