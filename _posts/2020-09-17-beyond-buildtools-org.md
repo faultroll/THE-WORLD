@@ -16,7 +16,13 @@
    - 新构筑系统
      gn/meson/modern-cmake（脚本生成、包管理、...）+ninja（工具脚本）+python/lua（文件脚本）
      似乎所有的工作都只是为了跨平台（*nix, win, apple, …）问题，makefile变成ninja，shellscript变成python/lua，...
-   但其实工程上遇到的问题还有很多，大部分都涉及到了管理上的哲学，是不可调和的矛盾，也是从未被解决的困境
+   纵观这些buildtool，抛去那些高级功能，一个合格的buildtool为了管理工程，其基础功能不外乎两个
+   - toolchain选择
+     - config(flags)
+     - toolset(cc/ld/...)
+   - source选择
+   这两项由两个因素影响运行时platform（即os）/arch（即cpu），platform关系到运行时的环境（win/linux/...），arch则关系到编译器生成的目标有哪些指令集（x86/arm/...）（abi？）。这两项即不相关又相关（如platform和arch会影响到所编译的源），故如果要将某个buildtool运用于工程，该buildtool通用模板可以单独在一个branch维护，每次更新模板就是把这个branch merge到source所在的branch即可。
+   上述两项基础功能大部分buildtool都实现的不错，但其实工程上遇到的问题还有很多，大部分都涉及到了管理上的哲学，是不可调和的矛盾，也是从未被解决的困境
    - 跨语言
      c&cxx/objc&objcxx/java均支持
    - 跨编译平台
