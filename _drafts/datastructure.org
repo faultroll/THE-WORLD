@@ -1,0 +1,245 @@
+lock free（无锁编程）
+https://stidio.github.io/2017/01/cpp11_atomic_and_lockfree_program/
+https://blog.csdn.net/weiwangchao_/article/details/51492823
+https://blog.csdn.net/u013074465/article/details/47748619
+https://github.com/boostcon/2011_presentations/tree/master/wed
+ABA problem：https://blog.csdn.net/yinkailin/article/details/79012532
+Lock-free Stack：https://nullprogram.com/blog/2014/09/02/
+atomic, -latomic：https://en.cppreference.com/w/c/atomic
+https://stackoverflow.com/questions/30591313/why-does-g-still-require-latomic
+win32: https://docs.microsoft.com/en-us/windows/win32/dxtecharts/lockless-programming
+
+data structures in glibc：https://stackoverflow.com/questions/14001652/does-standard-c-library-provides-linked-list-etc-data-structures
+insque（list）：https://www.ee.ryerson.ca/~courses/ele709/susv4/functions/remque.html
+https://www.jianshu.com/p/708ecbe5e71a
+https://subho57.github.io/Noobs-Guide-to-C/headers/remque.html
+
+data structure：https://www.cnblogs.com/skywang12345/p/3603935.html
+![](https://upload-images.jianshu.io/upload_images/293860-c7ee7c0bb589fe29.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+树，森林：https://blog.csdn.net/qq_38499859/article/details/78857873
+https://blog.csdn.net/u011240016/article/details/52823925
+https://www.cnblogs.com/fanzhidongyzby/p/3475850.html
+现在app用的list库：https://www.ee.ryerson.ca/~courses/ee8205/Data-Sheets/Tornado-VxWorks/vxworks/ref/lstLib.html
+posix binary tree（tsearch）：https://pubs.opengroup.org/onlinepubs/9699919799/functions/tsearch.html
+https://zay.pub/2016/11/24/%E4%BD%BF%E7%94%A8tsearch%20twalk%E7%AD%89%E5%87%BD%E6%95%B0%E6%9E%84%E5%BB%BA%E3%80%81%E9%81%8D%E5%8E%86%E4%BA%8C%E5%8F%89%E6%A0%91/
+https://www.gnu.org/software/libc/manual/html_node/Searching-and-Sorting.html
+https://www.ibm.com/support/knowledgecenter/en/ssw_aix_71/com.ibm.aix.basetrf2/tsearch.htm
+https://kazmax.zpp.jp/cmd/t/tsearch.3.html
+```
+由于tsearch系列函数搜索函数改变（key是syspath，但需要通过subsystem这个关键词找umount和mkfs的参数）后，仍然是按照tree的搜索方式，不会遍历整棵树，故考虑用其他替代
+1. lsearch，key用&key传入尝试，怀疑其内部做了类似*(base+nelp)=*key的操作，理由："/sys"的ascii为0x2F 0x73 0x79 0x73，而其base[nelp]值为0x7379732f，考虑到小端，值是一致的；已确认，确实是一致的；但是因为该系列没有delete操作（是array而不是list），无法使用
+2. 以insque, remque为基础，封一系列类似tsearch的函数；麻烦，见第3个idea
+3. list是tree的特例，在compar函数中相等为0，其余全部大于0或小于0即可将tree降成list
+```
+``` c
+typedef struct _devnode_s_ {
+    char syspath[128]; /* key */
+    char devpath[64];
+    char subsystem[32];
+    struct _resource_s_ {
+        void *data;
+        size_t size;
+    } resource;
+} devnode_t;
+
+static void *devbase[64] = {0};
+static size_t devwidth = sizeof(devbase[0]);
+static size_t nelp = 0;
+
+static int cmpsys(const void *node1, const void *node2)
+{
+    const char *sys1 = (*(const devnode_t **)node1)->syspath, *sys2 = (*(const devnode_t **)node2)->syspath;
+    size_t len1 = strlen(sys1), len2 = strlen(sys2);
+    // printf("(%s), (%s), (%zu), (%zu)\n", sys1, sys2, len1, len2);
+    return strncmp(sys1, sys2, ((len1 > len2) ? len2 : len1));
+}
+
+int devarray_dev_new(char *syspath, char *devpath, char *subsystem)
+{
+    size_t oldnelp = nelp;
+    devnode_t *devkey = (devnode_t *)malloc(sizeof(devnode_t)), *ptmp = NULL;
+    printf("malloc (%p)\n", (void *)devkey);
+    snprintf(devkey->syspath, sizeof(devkey->syspath), "%s", syspath);
+    snprintf(devkey->devpath, sizeof(devkey->devpath), "%s", devpath);
+    snprintf(devkey->subsystem, sizeof(devkey->subsystem), "%s", subsystem);
+    ptmp = lsearch((void *)&devkey, (void *)devbase, &nelp, devwidth, cmpsys);
+    if (ptmp != NULL) {
+        ptmp = *(devnode_t **)ptmp;
+        // printf("(%zu, %p, %p, %p, %p)\n", nelp, (void *)ptmp, (void *)devkey, (char *)devbase + nelp * devwidth, devbase[nelp - 1]);
+        if (oldnelp == nelp) {
+            /* A node containing the element already exists */
+            free(devkey);
+            printf("free (%p)\n", (void *)devkey);
+        } else {
+        }
+    }
+
+    return (0); /* 暂时不管异常 */
+}
+```
+
+stl in c
+https://github.com/P-p-H-d/mlib
+https://github.com/activesys/libcstl
+
+
+** fifo
+queue-->ring buffer-->bip buffer
+*** queue
+    - list
+      内存操作多
+    - array
+      不能无限增长，要数据搬移
+*** ring buffer
+    - full/empty
+      如何判断
+      mirror memory不需要真分配内存，只需要index
+    - data
+      连续性
+      mirror memory需要真正分配两块内存
+
+stl in c
+https://blog.csdn.net/ssdlyf/article/details/46724881
+https://ja.wikipedia.org/wiki/Libc
+https://stackoverflow.com/questions/201413/c-analog-to-stl
+https://stackoverflow.com/questions/2540/good-stl-like-library-for-c
+https://stackoverflow.com/questions/668501/are-there-any-open-source-c-libraries-with-common-data-structures
+https://stackoverflow.com/questions/890065/need-a-general-purpose-library-pure-c
+apr(apache portable runtime)：http://apr.apache.org/
+https://blog.csdn.net/xclshwd/article/details/103877102
+https://stackoverflow.com/questions/296992/glib-v-apr-pros-and-cons-of-each
+cstl：https://github.com/activesys/libcstl
+ccan：https://github.com/rustyrussell/ccan/
+sglib：https://github.com/stefanct/sglib
+
+data structure
+目的是将独立的数据(data)联合(construction)存储(storage)在一起，并进行查询(search)等操作
+？联合的方式，根据维度，可以是1、2、3、...维的，可以根据下标进行索引（array）
+？因为是联合，所以scheme里的基本闭包（closure）结构就是cons
+？离散数据间的关系（多维/数据分析） - iterator pattern
+？参考sglib，可以分为两部分：iterator&memory，前者是数据间关系，后者是数据读取写入
+```c
+rcbuf
+```
+？list和array这两个基础structure，对应两种模式，流（连续）&包（索引、离散）
+tree as array: https://webdocs.cs.ualberta.ca/~holte/T26/tree-as-array.html
+https://stackoverflow.com/questions/2675756/efficient-array-storage-for-binary-tree/
+https://stackoverflow.com/questions/6384658/if-i-store-a-binary-tree-in-an-array-how-do-i-avoid-the-wasted-space
+circular array: https://stackoverflow.com/questions/42977769/how-to-create-a-circular-array
+？FIFO/LIFO这种structure，说明联合有顺序需要，比如next/prev这种操作
+implementation and purpose:
+https://stackoverflow.com/questions/1860999/list-of-fundamental-data-structures-what-am-i-missing
+https://stackoverflow.com/questions/1514798/if-linked-list-and-array-are-fundamental-data-structures-what-type-of-data-struc
+https://stackoverflow.com/questions/1539069/practical-uses-of-different-data-structures
+https://stackoverflow.com/questions/4242634/class-vs-data-structure
+https://stackoverflow.com/questions/3039513/type-safe-generic-data-structures-in-plain-old-c
+https://stackoverflow.com/questions/4630377/explain-the-difference-between-a-data-structure-and-a-data-type
+
+stl(gnustl/...): https://zhuanlan.zhihu.com/p/23016264
+eastl: https://github.com/electronicarts/EASTL
+
+
+lock-free MPSC(multi-producer-single-consumer) queue
+ibm freelist（CAS）：https://github.com/RossBencina/QueueWorld/blob/master/ALGORITHMS.txt
+https://blog.csdn.net/lqt641/article/details/55058137
+只传指针：https://github.com/je-so/iqueue
+每个writer一个queue，readers搜索所有queue（传送带模型？）：https://github.com/cameron314/concurrentqueue
+https://moodycamel.com/blog
+```
+传送带模型
+in-proc，flexible-array，input-id
+每个writer分配一个地址，包送到传送带后（传送带memmove走包），writer继续写（类似fifo）
+传送带将每个包都送到处理的fifo（1-in-1-out），处理后送到下段传送带（可以设置超时，减缓阻塞情况）
+每个reader分配一个地址，传送带将处理后的包，根据input-id分发至，reader取走后，传送带继续写
+由 mpsc/spsc/spmc 三个 fifo 组成，只有 传送带跟每个w/r要加锁（也可以不加，跟每个w/r其实也是个 spsc 的fifo）
+
+也可以writer写之前申请地址（遍历所有地址，看是否可写），reader读之前遍历所有可提供的地址，每个地址若有writer写好的包，就取走，再将该地址置为可写
+
+zerocopy lockfree mpmc: send前获取ring-fifo的可写位置（cas修改state）并增加写指针（userspace ticket-spinlock），写入结构体带源和目标key，get前从写指针之后开始查询key，直到找到对应的包，取走。回包也是直接写到这个fifo内，只是源和目标key交换了而已（taskid在包内容里）
+另外还是一个service一个thread，该service的task用协程还是线程都可以，反正是spsc的
+```
+wait-free: https://www.zhihu.com/question/295904223
+https://blog.csdn.net/raomeng1/article/details/83145569
+
+
+Multiprocessors and Thread-Level Parallelism
+https://ocw.nctu.edu.tw/course_detail-v.php?bgid=9&gid=0&nid=238
+https://blog.csdn.net/yanghan1222/article/details/80275755
+
+cas&aba in database: https://blog.csdn.net/wufaliang003/article/details/78797203
+cas and (ticket) spinlock: https://zhuanlan.zhihu.com/p/80727111
+https://github.com/cyfdecyf/spinlock
+https://ruby-china.org/topics/37916
+https://www.cnblogs.com/shangdawei/p/3917117.html
+https://winddoing.github.io/post/50889.html
+https://blog.csdn.net/binling/article/details/50419103
+https://www.zhihu.com/question/55764216
+```
+lock-free本质是用户态的spinlock（cas），跟coroutine一样，最大的用处是高迸发的情况下，减少/防止用户态和内核态/上下文切换
+```
+
+想错了，函数没法直接指定某个线程，本质上调函数即创建线程，然后返回。创建的任务线程跟功能线程通信
+其实不是个 fifo 因为 consumer 不取走（否则还得做回包）。本质是个pool，每个包有个state，根据state看包是否被取走，是否需释放
+本质就是lock-free mq+lock-free mempool，mq内只存mempool取出的memblockidx
+
+关于producer(writer)和consumer(reader)有几个问题
+- 是否取走（是不是consumer都是取走，但reader都是不取？）
+- 是否指定对象（其实不指定对象的多线程mpmc基础上，再是指定对象的mpmc，两者不矛盾）
+- 是否内存拷贝（指针/mempool/网络，inproc/ipc/net）
+- 是否阻塞（wait-free？）
+- 是否无锁（不存在无锁，至少得是spinlock）
+- 
+
+考虑数据时按照数据库的方式思考（但不需要是关系型），统一按照tbl（本质就是map(key-value)，set可以用map表示）来考虑（各种数据结构都可以做成db中的tbl形式）
+- 无顺序要求
+  array/list/tree
+- 有顺序要求（increment key）
+  fifo/lifo
+写完后留回调即可，达到将业务和实现拆分的目的
+需求
+- pure c(c99/c11/...)
+- 库依赖越少越好（最好不依赖libc，比如malloc这些函数做成回调或者宏，这样还能兼顾multi-process的情况，比如malloc直接在sharemempool内申请内存）
+- multi-thread(MT) safe && reentrant
+- lock-free or user-space ticket spinlock（CAS等最好用宏表示，这样便于统一替换成一个atomic.h）
+hash/btree/skiplist/...（数据库本质数据结构）
+https://www.cnblogs.com/aspirant/p/11475295.html
+https://github.com/malbrain/database/
+https://www.cnblogs.com/vianzhang/p/7922426.html
+https://www.cnblogs.com/DilonWu/p/8857061.html
+https://stmatengss.github.io/blog/2018/11/04/Concepts-of-SkipList-Implementation-Concurrency-and-Lock-free/
+https://github.com/argv0/nbds
+https://github.com/greensky00/skiplist
+https://github.com/araina2/LockFree-HTM
+https://www.zhihu.com/question/52629893
+（Concurrent Skip List）https://github.com/facebook/folly
+https://www.cnblogs.com/fuzhe1989/p/3650303.html
+https://github.com/bhhbazinga/LockFreeHashTable
+https://github.com/LPD-EPFL/ASCYLIB
+rcu: https://github.com/urcu/userspace-rcu
+hazard pointer: https://www.cnblogs.com/catch/p/5129586.html
+
+ping-pong缓存本质是ringbuffer
+数据结构
+int only, content using mem-mgr
+- table(non-seq: storage/search/iter)
+  hash/b+tree/skip-list
+- fifo/lifo(seq: message/task/...)
+  linked-list/queue(ringbuffer)/stack/heap
+关心
+不一定要lock-free，但一定要能concurrency（不慢的MT-safe），比如lazy/rcu等技术；另外可以用atomic（FAA/CAS/...）做lock-free，但一定不要用类似mem-barrier这种技术（还不如用lock，因为不是逻辑上的，而且硬件给的）
+- lock/wait
+- ...
+实现顺序
+- atomic(faa/cas/...)
+- lock/thread
+- task manager
+  threadpool
+- memory manager
+  mempool （不关心内存哪里来的，只管理内存，如sharemempool仅仅是从sharemem分配大块内存）
+  https://github.com/userpro/MemoryPool
+  https://github.com/dcshi/ncx_mempool
+  fixed size mempool(无依赖) --> mempool(list等依赖)
+  故lock-free合集可以先开发fixed-size mempool，再开发table(hash/list/...)和fifo，其内存malloc可以用mempool管理，再用这两个开发flex-size mempool/threadpool/...
+
+常用：threadpool、coroutine、mempool、table（tree/list/map/...）、fifo（queue）、lifo（stack）
+coroutine的作用：空等时yield，如果函数本身while中执行完就进入下个循环，yield无意义（但thread有用，除了多核的情况，还因为中间执行某些函数内部会有等待，此时kernel会调度至其他thread）
